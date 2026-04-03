@@ -16,6 +16,7 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 10px;
+            zoom: 80%;
         }
 
         .container {
@@ -281,6 +282,7 @@
             body {
                 background: white;
                 padding: 0;
+                zoom: 80%;
             }
             
             .container {
@@ -406,7 +408,7 @@
                     </text>
                     
                     <!-- Load T -->
-                    <text id="svgLoadT" x="860" y="655" 
+                    <text id="svgLoadT" x="740" y="525" 
                           font-family="Arial, sans-serif" 
                           font-size="28" 
                           font-weight="bold" 
@@ -428,7 +430,7 @@
                     </text>
                     
                     <!-- Load L -->
-                    <text id="svgLoadL" x="720" y="525" 
+                    <text id="svgLoadL" x="880" y="685" 
                           font-family="Arial, sans-serif" 
                           font-size="28" 
                           font-weight="bold" 
@@ -556,6 +558,11 @@
                     </div>
 
                     <div class="input-group">
+                        <label>Max Utilization Limit <span class="unit">(%)</span></label>
+                        <input type="number" id="maxUtilization" step="1" value="90" min="1" max="100" placeholder="90">
+                    </div>
+
+                    <div class="input-group">
                         <label>Load L <span class="unit">(kips)</span></label>
                         <input type="number" id="loadL" step="0.1" placeholder="15">
                     </div>
@@ -631,22 +638,28 @@
                     </div>
                 </div>
 
-                <!-- Combined Stress and Utilization on new row -->
+                <!-- Combined Stress and Stress Utilization -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
                     <div class="result-item">
                         <div class="result-label">σ Combined</div>
                         <div class="result-value" id="combinedStress" style="font-size: 17px;">-<span class="result-unit">ksi</span></div>
                     </div>
 
-                    <div class="result-item utilization">
-                        <div class="result-label">Utilization</div>
-                        <div class="result-value" id="utilization" style="font-size: 17px;">-<span class="result-unit">%</span></div>
+                    <div class="result-item">
+                        <div class="result-label">Stress Utilization (σ / Fy)</div>
+                        <div class="result-value" id="stressUtilization" style="font-size: 17px;">-<span class="result-unit">%</span></div>
                     </div>
                 </div>
+                <!-- Hidden element to maintain JS compatibility -->
+                <div id="utilization" style="display:none;"></div>
 
                 <!-- ASCE 10 Section 4.6 Check -->
                 <div style="margin-top: 15px; padding-top: 15px; border-top: 2px solid #667eea;">
-                    <h3 style="font-size: 16px; font-weight: 600; color: #2c3e50; margin-bottom: 10px;">ASCE 10 Section 4.6 - Attachment Hole Strength Check</h3>
+                    <h3 style="font-size: 16px; font-weight: 600; color: #2c3e50; margin-bottom: 6px;">ASCE 10 Section 4.6 - Attachment Hole Strength Check</h3>
+                    <p style="font-size: 12px; color: #555; margin-bottom: 10px; line-height: 1.5;">
+                        Governing attachment hole strength is the <strong>lower</strong> of Eq. 4.6-1 and Eq. 4.6-2.
+                        If the plate does not have adequate strength, increase the plate thickness (t) and rerun the calculation.
+                    </p>
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
                         <div class="result-item">
@@ -655,7 +668,7 @@
                         </div>
 
                         <div class="result-item">
-                            <div class="result-label">d/dh Ratio</div>
+                            <div class="result-label">dh/d Ratio</div>
                             <div class="result-value" id="pinRatio" style="font-size: 17px;">-</div>
                         </div>
                     </div>
@@ -680,6 +693,11 @@
                         <div class="result-value" id="governingStrength" style="font-size: 17px;">-<span class="result-unit">kips</span></div>
                     </div>
 
+                    <div class="result-item">
+                        <div class="result-label">Hole Strength Utilization (P / Governing Strength)</div>
+                        <div class="result-value" id="holeUtilization" style="font-size: 17px;">-<span class="result-unit">%</span></div>
+                    </div>
+
                     <div class="result-item" id="attachmentCheckResult" style="background: white;">
                         <div class="result-label">Attachment Hole Adequacy</div>
                         <div class="result-value" id="attachmentCheck" style="font-size: 15px;">-</div>
@@ -688,11 +706,41 @@
             </div>
         </div>
         
+        <!-- Result Summary -->
+        <div style="background: #2c3e50; padding: 20px; margin: 15px; border-radius: 6px;">
+            <h2 style="font-size: 18px; font-weight: 600; color: white; margin-bottom: 14px; padding-bottom: 6px; border-bottom: 2px solid #667eea;">Result Summary</h2>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                <div style="background: rgba(255,255,255,0.08); padding: 12px; border-radius: 6px; border-left: 3px solid #667eea;">
+                    <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Required Thickness</div>
+                    <div id="sum_thickness" style="font-size: 20px; font-weight: 700; color: white;">-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span></div>
+                </div>
+                <div style="background: rgba(255,255,255,0.08); padding: 12px; border-radius: 6px; border-left: 3px solid #667eea;">
+                    <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Hole Diameter</div>
+                    <div id="sum_holeDiameter" style="font-size: 20px; font-weight: 700; color: white;">-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span></div>
+                </div>
+                <div style="background: rgba(255,255,255,0.08); padding: 12px; border-radius: 6px; border-left: 3px solid #667eea;">
+                    <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Pin Diameter</div>
+                    <div id="sum_pinDiameter" style="font-size: 20px; font-weight: 700; color: white;">-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span></div>
+                </div>
+                <div style="background: rgba(255,255,255,0.08); padding: 12px; border-radius: 6px; border-left: 3px solid #667eea;">
+                    <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">End Distance</div>
+                    <div id="sum_endDistance" style="font-size: 20px; font-weight: 700; color: white;">-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span></div>
+                </div>
+                <div style="background: rgba(255,255,255,0.08); padding: 12px; border-radius: 6px; border-left: 3px solid #667eea;">
+                    <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Yield Stress, Fy</div>
+                    <div id="sum_yieldStress" style="font-size: 20px; font-weight: 700; color: white;">-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> ksi</span></div>
+                </div>
+                <div style="background: rgba(255,255,255,0.08); padding: 12px; border-radius: 6px; border-left: 3px solid #3498db;">
+                    <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Governing Utilization</div>
+                    <div id="sum_utilization" style="font-size: 20px; font-weight: 700; color: #3498db;">-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> %</span></div>
+                </div>
+            </div>
+        </div>
+
         <!-- Footer Note -->
         <div style="background: #f8f9fa; padding: 15px; margin: 15px; border-radius: 6px; border-top: 2px solid #ddd;">
             <p style="font-size: 11px; color: #7f8c8d; text-align: center; margin: 0; line-height: 1.6;">
-                <strong style="color: #2c3e50;">Designed by Pankaj Deshmukh</strong><br>
-                © All rights reserved. This tool is the intellectual property of Pankaj Deshmukh and may not be distributed, copied, or reproduced without explicit written permission.<br>
+                © All rights reserved. This tool may not be distributed, copied, or reproduced without explicit written permission.<br>
                 <em>Disclaimer: The designer is not responsible for any errors, omissions, or results obtained from the use of this calculator. Users are advised to verify all calculations independently.</em>
             </p>
         </div>
@@ -800,6 +848,9 @@
             const LoadL = parseFloat(document.getElementById('loadL').value);
             const Fy = parseFloat(document.getElementById('allowableStress').value) || 50;
             const Fu = parseFloat(document.getElementById('tensileStress').value) || 65;
+            const maxUtilPct = parseFloat(document.getElementById('maxUtilization').value);
+            const maxUtilLimit = (!isNaN(maxUtilPct) && maxUtilPct > 0) ? maxUtilPct / 100 : 0.90;
+            const allowableStressWithLimit = Fy * maxUtilLimit;
 
             // Validate inputs
             if (isNaN(w) || isNaN(b) || isNaN(l) || isNaN(T) || isNaN(V) || isNaN(LoadL)) {
@@ -812,25 +863,42 @@
                 return;
             }
 
-            // Calculate required thickness in 1/8" increments
+            // Load at attachment point P (used in hole strength check)
+            const P = Math.sqrt(Math.pow(V, 2) + Math.pow(T, 2) + Math.pow(LoadL, 2));
+
+            // Determine whether attachment hole check inputs are available
+            const holeCheckAvailable = !isNaN(dh) && !isNaN(d) && !isNaN(endDistance) && dh > 0 && d > 0 && endDistance > 0;
+
+            // Iterate thickness in 1/8" increments.
+            // At each step compute BOTH utilizations:
+            //   stressUtil  = combinedStress / Fy  (plate stress check)
+            //   holeUtil    = P / governingHoleStrength  (ASCE 10 Sec 4.6, when inputs available)
+            // governingUtil = max(stressUtil, holeUtil)
+            // Stop when governingUtil <= maxUtilLimit.
             const increment = 0.125;
             let t = increment;
-            let maxIterations = 200;
+            const maxIterations = 200;
             let iterations = 0;
-            let combinedStress = 0;
 
             while (iterations < maxIterations) {
-                const Sx = (w * Math.pow(t, 2)) / 6;
-                const Sy = (t * Math.pow(w, 2)) / 6;
-                const Mx = V * b;
-                const My = T * b;
-                const sigmaX = Sx !== 0 ? Mx / Sx : 0;
-                const sigmaY = Sy !== 0 ? My / Sy : 0;
-                // Updated axial stress calculation: LoadL / (l * t)
-                const sigmaAxial = (l * t) !== 0 ? LoadL / (l * t) : 0;
-                combinedStress = sigmaX + sigmaY + sigmaAxial;
+                const Sx_i = (w * Math.pow(t, 2)) / 6;
+                const Sy_i = (t * Math.pow(w, 2)) / 6;
+                const sigmaX_i = Sx_i !== 0 ? (V * b) / Sx_i : 0;
+                const sigmaY_i = Sy_i !== 0 ? (T * b) / Sy_i : 0;
+                const sigmaAxial_i = (l * t) !== 0 ? LoadL / (l * t) : 0;
+                const stressUtil_i = (sigmaX_i + sigmaY_i + sigmaAxial_i) / Fy;
 
-                if (combinedStress <= Fy) {
+                let holeUtil_i = 0;
+                if (holeCheckAvailable) {
+                    const hs1 = 0.75 * (endDistance - 0.5 * dh) * t * Fu;
+                    const hs2 = 1.35 * d * t * Fu;
+                    const gov_i = Math.min(hs1, hs2);
+                    holeUtil_i = gov_i > 0 ? P / gov_i : Infinity;
+                }
+
+                const governingUtil_i = Math.max(stressUtil_i, holeUtil_i);
+
+                if (governingUtil_i <= maxUtilLimit) {
                     break;
                 }
 
@@ -839,74 +907,58 @@
             }
 
             if (iterations >= maxIterations) {
-                alert('Could not find suitable thickness within reasonable range');
+                alert('Could not find a suitable thickness within reasonable range. Please review input values.');
                 return;
             }
 
-            // Calculate final values
+            // Final values at converged thickness
             const Sx = (w * Math.pow(t, 2)) / 6;
             const Sy = (t * Math.pow(w, 2)) / 6;
             const Mx = V * b;
             const My = T * b;
             const sigmaX = Sx !== 0 ? Mx / Sx : 0;
             const sigmaY = Sy !== 0 ? My / Sy : 0;
-            // Updated axial stress calculation: LoadL / (l * t)
             const sigmaAxial = (l * t) !== 0 ? LoadL / (l * t) : 0;
-            // Cross section area
             const crossSectionArea = l * t;
-            combinedStress = sigmaX + sigmaY + sigmaAxial;
-            const utilization = (combinedStress / Fy) * 100;
-
-            // ASCE 10 Section 4.6 Calculations
-            // Load at attachment point P
-            const P = Math.sqrt(Math.pow(V, 2) + Math.pow(T, 2) + Math.pow(LoadL, 2));
+            const combinedStress = sigmaX + sigmaY + sigmaAxial;
+            const stressUtil = combinedStress / Fy;                     // as a ratio
 
             // Pin diameter ratio check
             let pinRatioValue = 0;
             let pinCheckText = '';
             let pinCheckColor = '#2c3e50';
-            
-            if (!isNaN(dh) && !isNaN(d) && dh > 0) {
-                pinRatioValue = d / dh;
+
+            if (!isNaN(dh) && !isNaN(d) && dh > 0 && d > 0) {
+                pinRatioValue = dh / d;
                 if (pinRatioValue > 2) {
-                    pinCheckText = 'Pin diameter too small - REVISE PIN DIAMETER';
+                    pinCheckText = 'Hole too large relative to pin - REVISE DIAMETERS';
                     pinCheckColor = '#e74c3c';
                 } else {
-                    pinCheckText = 'd/dh ≤ 2 - OK';
+                    pinCheckText = 'dh/d \u2264 2 - OK';
                     pinCheckColor = '#27ae60';
                 }
             }
 
-            // ASCE 10 Equations 4.6-1 and 4.6-2
+            // ASCE 10 Sec 4.6 final values
             let holeStrength1 = 0;
             let holeStrength2 = 0;
             let governingStrength = 0;
+            let holeUtil = 0;                                           // as a ratio
             let attachmentCheckText = '';
-            let attachmentCheckColor = '#2c3e50';
 
-            if (!isNaN(dh) && !isNaN(d) && !isNaN(endDistance) && dh > 0 && d > 0 && endDistance > 0) {
-                // Eq. 4.6-1: 0.75 * (L - 0.5*dh) * t * Fu
+            if (holeCheckAvailable) {
                 holeStrength1 = 0.75 * (endDistance - 0.5 * dh) * t * Fu;
-                
-                // Eq. 4.6-2: 1.35 * d * t * Fu
                 holeStrength2 = 1.35 * d * t * Fu;
-                
-                // Governing is the greater of the two
-                governingStrength = Math.max(holeStrength1, holeStrength2);
-
-                // Check adequacy
-                if (P <= governingStrength) {
-                    attachmentCheckText = 'Attachment Plate has adequate strength';
-                    attachmentCheckColor = '#27ae60';
-                    document.getElementById('attachmentCheckResult').style.background = 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)';
-                    document.getElementById('attachmentCheckResult').style.color = 'white';
-                } else {
-                    attachmentCheckText = 'REVISE THICKNESS (t) AND RERUN CALCULATION';
-                    attachmentCheckColor = '#e74c3c';
-                    document.getElementById('attachmentCheckResult').style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
-                    document.getElementById('attachmentCheckResult').style.color = 'white';
-                }
+                governingStrength = Math.min(holeStrength1, holeStrength2);
+                holeUtil = governingStrength > 0 ? P / governingStrength : 0;
+                attachmentCheckText = 'Attachment Plate has adequate strength';
+                document.getElementById('attachmentCheckResult').style.background = 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)';
+                document.getElementById('attachmentCheckResult').style.color = 'white';
             }
+
+            // Governing utilization = max of stress and hole strength utilizations
+            const governingUtil = Math.max(stressUtil, holeUtil);
+            const utilization = governingUtil * 100;                    // display as %
 
             // Display results - format thickness to remove trailing zeros
             const formattedThickness = formatNumber(t, 3);
@@ -920,35 +972,50 @@
             document.getElementById('crossSectionArea').innerHTML = crossSectionArea.toFixed(3) + '<span class="result-unit">in²</span>';
             document.getElementById('sigmaAxial').innerHTML = sigmaAxial.toFixed(3) + '<span class="result-unit">ksi</span>';
             document.getElementById('combinedStress').innerHTML = combinedStress.toFixed(3) + '<span class="result-unit">ksi</span>';
-            
-            let statusClass = 'status-ok';
-            let statusText = 'OK';
-            if (utilization > 100) {
-                statusClass = 'status-critical';
-                statusText = 'OVERSTRESSED';
-            }
-            
+
+            // Stress utilization display
+            document.getElementById('stressUtilization').innerHTML = (stressUtil * 100).toFixed(2) + '<span class="result-unit">%</span>';
+
+            // Governing utilization is always <= maxUtilLimit here (loop guarantee)
             document.getElementById('utilization').innerHTML = 
                 utilization.toFixed(2) + '<span class="result-unit">%</span>' +
-                '<span class="status-indicator ' + statusClass + '">' + statusText + '</span>';
+                '<span class="status-indicator status-ok">OK</span>';
 
             // Display ASCE 10 Section 4.6 results
             document.getElementById('loadP').innerHTML = P.toFixed(3) + '<span class="result-unit">kips</span>';
             
             if (!isNaN(dh) && !isNaN(d) && dh > 0) {
+                const pinFailed = pinRatioValue > 2;
+                const utilColor = pinFailed ? '#e74c3c' : 'inherit';
                 document.getElementById('pinRatio').innerHTML = pinRatioValue.toFixed(3);
                 document.getElementById('pinCheck').innerHTML = '<span style="color: ' + pinCheckColor + ';">' + pinCheckText + '</span>';
                 document.getElementById('holeStrength1').innerHTML = holeStrength1.toFixed(3) + '<span class="result-unit">kips</span>';
                 document.getElementById('holeStrength2').innerHTML = holeStrength2.toFixed(3) + '<span class="result-unit">kips</span>';
                 document.getElementById('governingStrength').innerHTML = governingStrength.toFixed(3) + '<span class="result-unit">kips</span>';
-                document.getElementById('attachmentCheck').innerHTML = '<span style="color: ' + (document.getElementById('attachmentCheckResult').style.color === 'white' ? 'white' : attachmentCheckColor) + ';">' + attachmentCheckText + '</span>';
+                document.getElementById('holeUtilization').innerHTML = '<span style="color:' + utilColor + '; font-weight:' + (pinFailed ? '700' : 'normal') + ';">' + (holeUtil * 100).toFixed(2) + '<span class="result-unit">%</span></span>';
+                document.getElementById('attachmentCheck').innerHTML = '<span style="color: white;">' + attachmentCheckText + '</span>';
+                // Governing utilization in Result Summary — red if pin failed
+                document.getElementById('sum_utilization').innerHTML = '<span style="color:' + (pinFailed ? '#e74c3c' : '#3498db') + '; font-weight:700;">' + utilization.toFixed(2) + '</span><span style="font-size: 13px; color: rgba(255,255,255,0.6);"> %</span>';
             } else {
                 document.getElementById('pinRatio').innerHTML = '-';
                 document.getElementById('pinCheck').innerHTML = 'Enter hole and pin diameters';
                 document.getElementById('holeStrength1').innerHTML = '-<span class="result-unit">kips</span>';
                 document.getElementById('holeStrength2').innerHTML = '-<span class="result-unit">kips</span>';
                 document.getElementById('governingStrength').innerHTML = '-<span class="result-unit">kips</span>';
-                document.getElementById('attachmentCheck').innerHTML = 'Enter all required values';
+                document.getElementById('holeUtilization').innerHTML = '-<span class="result-unit">%</span>';
+                document.getElementById('attachmentCheck').innerHTML = 'Enter hole, pin and end distance values';
+            }
+
+            // Result Summary panel
+            const tFormatted = formatNumber(t, 3);
+            document.getElementById('sum_thickness').innerHTML = tFormatted + '<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span>';
+            document.getElementById('sum_holeDiameter').innerHTML = (!isNaN(dh) && dh > 0 ? dh.toString() : '-') + '<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span>';
+            document.getElementById('sum_pinDiameter').innerHTML = (!isNaN(d) && d > 0 ? d.toString() : '-') + '<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span>';
+            document.getElementById('sum_endDistance').innerHTML = (!isNaN(endDistance) && endDistance > 0 ? endDistance.toString() : '-') + '<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span>';
+            document.getElementById('sum_yieldStress').innerHTML = Fy.toString() + '<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> ksi</span>';
+            // sum_utilization color is set inside the pin check block above; only set here when hole inputs not provided
+            if (!(! isNaN(dh) && !isNaN(d) && dh > 0)) {
+                document.getElementById('sum_utilization').innerHTML = utilization.toFixed(2) + '<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> %</span>';
             }
 
             // Update diagram overlays
@@ -967,6 +1034,7 @@
             document.getElementById('loadT').value = '';
             document.getElementById('loadV').value = '';
             document.getElementById('loadL').value = '';
+            document.getElementById('maxUtilization').value = '90';
             
             document.getElementById('thickness').innerHTML = '-<span class="result-unit" style="color: rgba(255,255,255,0.9);">inches</span>';
             const resultIds = ['sx', 'sy', 'mx', 'my', 'sigmaX', 'sigmaY', 'crossSectionArea', 'sigmaAxial', 'combinedStress', 'utilization'];
@@ -992,9 +1060,19 @@
             document.getElementById('holeStrength1').innerHTML = '-<span class="result-unit">kips</span>';
             document.getElementById('holeStrength2').innerHTML = '-<span class="result-unit">kips</span>';
             document.getElementById('governingStrength').innerHTML = '-<span class="result-unit">kips</span>';
+            document.getElementById('holeUtilization').innerHTML = '-<span class="result-unit">%</span>';
+            document.getElementById('stressUtilization').innerHTML = '-<span class="result-unit">%</span>';
             document.getElementById('attachmentCheck').innerHTML = '-';
             document.getElementById('attachmentCheckResult').style.background = 'white';
             document.getElementById('attachmentCheckResult').style.color = '#2c3e50';
+
+            // Reset Result Summary
+            document.getElementById('sum_thickness').innerHTML = '-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span>';
+            document.getElementById('sum_holeDiameter').innerHTML = '-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span>';
+            document.getElementById('sum_pinDiameter').innerHTML = '-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span>';
+            document.getElementById('sum_endDistance').innerHTML = '-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span>';
+            document.getElementById('sum_yieldStress').innerHTML = '-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> ksi</span>';
+            document.getElementById('sum_utilization').innerHTML = '-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> %</span>';
 
             // Reset SVG overlays to show only variable names
             updateDiagramOverlays();
@@ -1023,7 +1101,8 @@
                     tensileStress: document.getElementById('tensileStress').value,
                     loadT: document.getElementById('loadT').value,
                     loadV: document.getElementById('loadV').value,
-                    loadL: document.getElementById('loadL').value
+                    loadL: document.getElementById('loadL').value,
+                    maxUtilization: document.getElementById('maxUtilization').value
                 },
                 results: {
                     thickness: document.getElementById('thickness').textContent,
@@ -1095,6 +1174,7 @@
                         document.getElementById('loadT').value = data.inputs.loadT || '';
                         document.getElementById('loadV').value = data.inputs.loadV || '';
                         document.getElementById('loadL').value = data.inputs.loadL || '';
+                        document.getElementById('maxUtilization').value = data.inputs.maxUtilization || '90';
                     }
                     
                     // Update diagram overlays
