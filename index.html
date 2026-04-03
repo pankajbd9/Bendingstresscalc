@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transmission Line Plate Stress Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+            zoom: 80%;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 29px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 17px;
+            opacity: 0.9;
+        }
+
+        .diagram-section {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .diagram-section h2 {
+            font-size: 19.2px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .diagram-container {
+            position: relative;
+            display: inline-block;
+            max-width: 100%;
+        }
+
+        #plateDiagram {
+            max-width: 100%;
+            height: auto;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            display: block;
+        }
+
+        #overlayCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            padding: 15px;
+        }
+
+        .input-section, .results-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+        .inputs-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .section-title {
+            font-size: 19.2px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .input-group {
+            margin-bottom: 0;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: 500;
+            color: #34495e;
+            margin-bottom: 4px;
+            font-size: 17px;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 6px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 15.6px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .unit {
+            font-size: 13.2px;
+            color: #7f8c8d;
+            font-weight: normal;
+        }
+
+        .calculate-btn {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16.8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 8px;
+        }
+
+        .calculate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .calculate-btn:active {
+            transform: translateY(0);
+        }
+
+        .result-item {
+            background: white;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            border-left: 3px solid #667eea;
+        }
+
+        .result-label {
+            font-size: 13.2px;
+            color: #7f8c8d;
+            margin-bottom: 3px;
+        }
+
+        .result-value {
+            font-size: 19.2px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .result-unit {
+            font-size: 17px;
+            color: #7f8c8d;
+            margin-left: 3px;
+        }
+
+        .utilization {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-left: none;
+        }
+
+        .utilization .result-label,
+        .utilization .result-unit {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .utilization .result-value {
+            color: white;
+            font-size: 29px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .status-ok {
+            background: #27ae60;
+            color: white;
+        }
+
+        .status-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .status-critical {
+            background: #e74c3c;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .reset-btn {
+            width: 100%;
+            padding: 8px;
+            background: #95a5a6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 8px;
+        }
+
+        .reset-btn:hover {
+            background: #7f8c8d;
+        }
+
+        .print-btn {
+            width: 100%;
+            padding: 8px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 8px;
+        }
+
+        .print-btn:hover {
+            background: #2980b9;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+                zoom: 80%;
+            }
+            
+            .container {
+                box-shadow: none;
+                max-width: 100%;
+            }
+            
+            .calculate-btn, .reset-btn, .print-btn {
+                display: none;
+            }
+        }
+
+        .svg-comment {
+            font-family: monospace;
+            font-size: 10px;
+            fill: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Design of Strain Attachment Plate</h1>
+        </div>
+
+        <!-- Project Information Section -->
+        <div style="background: white; padding: 15px; margin: 15px; border-radius: 6px; border: 2px solid #667eea;">
+            <h2 style="font-size: 18px; font-weight: 600; color: #2c3e50; margin-bottom: 10px;">Project Information</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                <div>
+                    <label style="display: block; font-weight: 500; color: #34495e; margin-bottom: 4px; font-size: 15px;">Project Name</label>
+                    <input type="text" id="projectName" placeholder="Enter project name" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 14px;">
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 500; color: #34495e; margin-bottom: 4px; font-size: 15px;">Tower Type</label>
+                    <input type="text" id="towerType" placeholder="Enter tower type" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 14px;">
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 500; color: #34495e; margin-bottom: 4px; font-size: 15px;">Member Label</label>
+                    <input type="text" id="memberLabel" placeholder="Enter member label" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 14px;">
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                <button onclick="saveData()" style="padding: 10px; background: #27ae60; color: white; border: none; border-radius: 4px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                    💾 Save File
+                </button>
+                <button onclick="document.getElementById('importFile').click()" style="padding: 10px; background: #3498db; color: white; border: none; border-radius: 4px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                    📂 Import File
+                </button>
+                <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(event)">
+            </div>
+        </div>
+
+        <!-- Diagram Section with Original PNG and SVG Overlay -->
+        <div class="diagram-section">
+            <h2>Strain Plate Configuration</h2>
+            <div class="diagram-container">
+                <img id="plateDiagram" src="data:image/jpeg;base64,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VW3M0S3rTsmKyZm3zMaPMViOsV6ruNaqpCTca1ERPzXtqerp9XVTp5ozx6cVJp45ej2NaxiMY1GtamJERMSIh/TVH6V6oLRGwed5j4Q/SvVBaI2DzvMfCMG5nvjzhbLa4NUfpXqgtEbB53mPhD9K9UFojYPO8x8Ibme+PODLa4NYUu8sJMnVoNCuOyqTM1abgRpuWh0qqfs0gQnQmPV7orW/O2UZmJERdzH3DObY758HD+eZc5VRicJWYIzbHfPg4fzzLjbHfPg4fzzLkCzBGbY758HD+eZcbY758HD+eZcCzBGbY758HD+eZcbY758HD+eZcCzBGbY758HD+eZcbY758HD+eZcCzBGbY758HD+eZcbY758HD+eZcCzBGbY758HD+eZcbY758HD+eZcCzBGbY758HD+eZcbY758HD+eZcCzBGbY758HD+eZcbY758HD+eZcCzBGbY758HD+eZcbY758HD+eZcCzBGbY758HD+eZcbY758HD+eZcCzBGbY758HD+eZcbY758HD+eZcCzBGbY758HD+eZcbY758HD+eZcCzBGbY758HD+eZcbY758HD+eZcCzBru4L7u+iScCanMHMVIcaclpNuKsQF/aR4zITN5P6z0MjtjvnwcP55lwLMEZtjvnwcP55lxtjvnwcP55lwLMEZtjvnwcP55lxtjvnwcP55lwLMEZtjvnwcP55lxtjvnwcP55lwLMEZtjvnwcP55lxtjvnwcP55lwLMEZtjvnwcP55lxtjvnwcP55lwLMEZtjvnwcP55lxtjvnwcP55lwLMEZtjvnwcP55lxtjvnwcP55lwLMEZtjvnwcP55lxtjvnwcP55lwLMGu61fd30qNTYU1g5io6ozjZODirEBf2ise9Me53GKZHbHfPg4fzzLgWYIzbHfPg4fzzLmOjX3d8K5ZSgOwcxflc1Jx5yGn6YgYutwnwmO3cXdjMA2ICM2x3z4OH88y42x3z4OH88y4FmCM2x3z4OH88y42x3z4OH88y4FmCM2x3z4OH88y5lbDuGJc9vrUo1OfTY8OcmpONLOipEVj4EeJBd85u4qKsNV3O6BngAAAAAAAAAAANRdUphemsEErblUh0mDVJKfnHwJyCr1ZERiMxo6G7eRU7ioqLvbm+Xt26rlUU08yZw26CFwT4WbHwm0/r9sVdj5tjNlHp8xihzUHymY91N1PnNVW+MuiKqKqJxVGJAAFQAAAAAAAAAAAAAAAAAAAAAAAAAAAAARlo5zb48qQ9QpZkZaOc2+PKkPUKWYEYme93BtOkqWZGJnvdwbTpKlmAAAAjLkzuWd5vqnsxZkZcmdyzvN9U9mAsyMwmdlLI4SQ+izJZkZhM7KWRwkh9FmQLMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABGVPPfb/BuqdJkCzIyp577f4N1TpMgWYAAARmAvdwL2Vj7xSfqWlmRmAvMtZXmGT9S0swAAAAAAAAAAAAAAAAAAAAAAAABGYLN66eEk5/i0syMwV711cJJz/FoFmAAIzDB/m3S+ElF/+ylyzIzDB/m3S+ElF/8AspcswAAAAAAAAAAAAAAAAAAAAACMwm9k7J4SQujTBZkZhN7J2TwkhdGmCzAEZU899v8ABuqdJkCzIyp577f4N1TpMgBZgAAAABGYHv8ANqp8JK1/9lMlmeXpDAZXrzqVxXHJYWrlt+BNXHVkbT5NX9ahbCejsXFiitTdVuyXc31U6W6aapxVOES9Qg81fqx3T4eby/jE+OP1Y7p8PN5fxifHO25s/M/EozPc9Kg81fqx3T4eby/jE+OP1Y7p8PN5fxifHG5s/M/EmZ7npUHmr9WO6fDzeX8Ynxx+rHdPh5vL+MT443Nn5n4kzPc9Kg81fqx3T4eby/jE+OP1Y7p8PN5fxifHG5s/M/EmZ7npU8pf9pB/mTafnKL6szH6sd0+Hm8v4xPjmk+q0wT1fB3btEnalhErl1Mm5t8JkGfV+xgqjMeybsojt1d7tGnR27UXqZivM+EoqmcPPtLqE/SqhBqNLnZmRnIDtnBmJeKsOJDd3WuTEqL9x6qwJ9V/UZDrNIwnSzqjLJia2rSsNEjsTuxYaYkenjbiXxOU8lnapNOqFWqMGnUuSmZ6cju2EKBLw1iRHr3Eam6p7V6xbvRiuHOJmOT9bLRuagXbRYVatqrStUkIu42NLv2SIvba5N9rk7aKiKhlzyT1KvU73zaVal7vuK5Jy3HKiKtJkIrXPmG7+xmFXGzY4/6OJy+Nqoetj5nUW6LdeKKsw7ROQAHBIAAAAAAAAAAAAAAAAAAAAAAAAAAIy0c5t8eVIeoUsyMtHObfHlSHqFLMCMTPe7g2nSVLMjEz3u4Np0lSzAAAARlyZ3LO831T2YsyMuTO5Z3m+qezAWZGYTOylkcJIfRZksyMwmdlLI4SQ+izIFmAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAjcNk3QpDBZXp65Z+oSNLl5dIsaLITTpeYVWva5jIb2qio57kazx7LEu4p5p6k6VoGFmj1WUrtz3lLXBT46xHQZe5JlrIks9fmOaivVV2K42L/squ640W7G3bm5M8I+iJnjh7IBqjIRbWlV/eksz7xkItrSq/vSWZ95XZt/F+P2cW1waoyEW1pVf3pLM+8ZCLa0qv70lmfeNm38X4/ZxUlTz32/wbqnSZAszSVvYLLbh4VZ6nRJ+5KlLUuiwomznK5Mve2JNRn42o9r0VERso1VbjxfORS6yYWf9nq/Pk78Y5VRETwSswRmTCz/s9X58nfjDJhZ/2er8+TvxiBRWzR5O3rdp1Bp/XPkdOlYcrA647ZO2DGo1uNe2uJEMiRmTCz/s9X58nfjDJhZ/2er8+TvxgLMEZkws/wCz1fnyd+MS0Wwbbj4V5ekQUrDZKTocSamoSVuc+dFjR2MguVeu40xJBmExdvZLj3kxBtwEZkws/wCz1fnyd+MMmFn/AGer8+TvxgLMEZkws/7PV+fJ34wyYWf9nq/Pk78YCzBGZMLP+z1fnyd+MMmFn/Z6vz5O/GAswRmTCz/s9X58nfjDJhZ/2er8+TvxgLMEZkws/wCz1fnyd+MMmFn/AGer8+TvxgLMEZkws/7PV+fJ34wyYWf9nq/Pk78YCzBGZMLP+z1fnyd+MS2E2wbbo9Bk6tJpWITZarSPyn+W5xUdLxJhkKLjxxd5GRHO/wBkDbgIzJhZ/wBnq/Pk78YZMLP+z1fnyd+MBZmPolHk6P8ALvkfXPps5EnI2zdj/aPxbLF3E3N4nMmFn/Z6vz5O/GGTCz/s9X58nfjAWYIzJhZ/2er8+Tvxhkws/wCz1fnyd+MAwwf5t0vhJRf/ALKXLM1BhewdWtTsHlTrEvL1RH0rrVSdsqzOPTYS8VkZ+46KqfuMdu76b6YlRFKxMGNnKmNJerKnn2d+MBZgjMmFn/Z6vz5O/GGTCz/s9X58nfjAWYIzJhZ/2er8+Tvxhkws/wCz1fnyd+MBZgjMmFn/AGer8+Tvxhkws/7PV+fJ34wFmCMyYWf9nq/Pk78YZMLP+z1fnyd+MBZgjMmFn/Z6vz5O/GGTCz/s9X58nfjAWYIzJhZ/2er8+Tvxhkws/wCz1fnyd+MBZgjMmFn/AGer8+Tvxhkws/7PV+fJ34wFmCMyYWf9nq/Pk78YZMLP+z1fnyd+MAwm9k7J4SQujTBZkNM4J7HmXQXR5CpxVgREiwldW51dg9EVNkn7bcXEqp+ZzZMLP+z1fnyd+MBZkZU899v8G6p0mQGTCz/s9X58nfjHC7BPY7pyHOukKmszDhuhMirW53ZNY5Wq5qL17eVWtX8kAuQRmTCz/s9X58nfjDJhZ/2er8+TvxgLMEZkws/7PV+fJ34wyYWf9nq/Pk78YCzIzA9/m1U+Ela/+ymRkws/7PV+fJ34xR27RaZb1Jh0ukS3yaUhve9GK9z1Vz3q97lc5Vc5Vc5yqqqqqqgZAAAAAAAAAAADyl/2kH+ZNp+covqz1aYys29Q61OSE5VqVKT8enRFiybpiGj+sxFTFs2ou4ju4u+naO2nuxauRXPRExmH5+4Eupive/usVStMdbNAfickeahr8ojt3/2UJcS4l3PnOxJu402W8e3MFGCeyMGVOSXtikMZNOZsY8/HxRJqP5T8W4n9luJviLkHXUay5f4TOI7kRTEAAMiwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAjLRzm3x5Uh6hSzIy0c5t8eVIeoUswIxM97uDadJUsyMTPe7g2nSVLMAAABGXJncs7zfVPZizIy5M7lneb6p7MBZkZhM7KWRwkh9FmSzIzCZ2UsjhJD6LMgWYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADw31fWFH9M3JAwb0eZxyFJckapuY7cizSp82Hub6Mau7/acqKmNpobA5fdQwcYRKXdchs3pLRNjNQGri+UQHbkSGva3U3se8qIvaP0lncEGC6dnI05N2Db0eYjxHRYsWJIsc573Ljc5VVN1VVVXGa06nXBZg4rWDb5dVrJoU9M/paowuux5NjnbBk3FaxuNU3kaiIniQ9mzrLNFjY2Zxyn7uc0zMt62/V6fX6HI1ukzLJmQnoDI8vFbvOY5MaL4vu7R3joW9RaTb1Jg0ih0+Wp1PgY+tS0uxGQ2Y1VVxIm4mNVVfzO+ePOM8HQAPmI9kOG6JEcjWNRXOcq7iInbIEdg6+mXDetaXdbMVv5JBX/05aBChKnHJHX8yzI7Aqx64MaNPxGq2LVWRKtERU3UdNxXzKovjxxSxAAADD2RXG3PZtGuNkssq2qSMGcSCr9ksNIjEdsceJMeLHix4jMEZgLzLWV5hk/UtLMARllfTcIF8VZd1IU1KUmG7usgS7Yy4vEkSbip96KWZGYGv29kpV13VrFQnakju7DjTMR8L+EJYafkBZgAAAAAAAAAAAAAAAE9hMpUWuYO7ipEDGkxN0yYhQHJvtirDdsHJ40diVPuKEAY61qrCrts0qtwcXWqhJQZtmLe2MRiPT/EyJGYGP2FhwaQu4tHnZylo3uMl5iJDhfxhthqniVCzAGHteuNriVTYyywPkFRjSK437LZrDxfO3tzHj3jMEZgr3rq4STn+LQLMAAdOu06DV6HP0mZ/wAhOy0SXibmP5r2q1f+CmFwU1GNVcGltz01/wB6iU2A2ZTHjxRmsRsRPyejk/IpiMwUfRZO4aGu4tKuGdhon9Vsd6TbE+5GTLUTxYgLMAAAAAAAAAAAAAAAAAAAAAAAGjcP143Lb+GvBNRKNVo0nTqzUYkKowGNarZhiRICIi40Vd5zt7Fvm8jzf1T31h8B/naL62XPSBovREW6Jjun1lEc5AAZ0gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACMtHObfHlSHqFLMjLRzm3x5Uh6hSzAjEz3u4Np0lSzIxM97uDadJUswAAAEZcmdyzvN9U9mLMjLkzuWd5vqnswFmRmEzspZHCSH0WZLMjMJnZSyOEkPosyBZgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABEYErXqdoWL+hqv1j5V+kZ2Z/Yv2TdhFmYkRm7iTd2Lkx+MtwWiqYpmkAAVAlMME3HksF9xvlHbGbjSESVlV7keMnWoX/ADvaVZGYUfpcW1KHv/pG4pZXJ/ZlkfOY18WOWan5onbArKbKQKfTpaQlm7GBLQmQYbe41qIiJ/BDnAAAACMwF5lrK8wyfqWlmRmAvMtZXmGT9S0swMDhGq8Sg2BcFag4+vSNNmI8JE31iNhuVqJ41diRPvO1aFIh0C0qPQoWLrdNkIEo3FvYocNrE/wMBhe+k0CmUVN11WrchKqn9aG2O2NGT84UKIhZgAAAAAAAAAAAAAAAAAABGWP9Cvu+KQu4j52WqkJvcZHl2Q1/jEloq/eqlmRkz9Aw1yUTeZWbfjQnL3XykdjmN+/YzcVU8lSzAEZgr3rq4STn+LSzIzBXvXVwknP8WgWYAAEZQfoOF26JHeh1CnyNSZ/aiJ12BE/g2FA/ihZkZcv0HCvaNR3mT0rP0l39p7mw5ln5o2Vi4vKUCzAAAAAAAAAAAAAAAAAAAAAAAB5v6p76w+A/ztF9bLnpA839U99YfAf52i+tlz0gab3ZW/CfWURzkABmSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIy0c5t8eVIeoUsyMtHObfHlSHqFLMCMTPe7g2nSVLMjEz3u4Np0lSzAAAARlyZ3LO831T2YsyMuTO5Z3m+qezAWZGYTOylkcJIfRZksyMwmdlLI4SQ+izIFmAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABGVX6dhkoUtvw6XR5yciJ3IkWJBhQl/3WzCFmRlo/TsJd61TfSVWRo7V/wDigrMri/OcxL40xdoCzAAAAARmAvMtZXmGT9S0syMwF5lrK8wyfqWlmBGXT9OwpWbTd9snCn6u7xOZDZLN/ik4/F9y9wsyMov07DDcc5vw6bS5Knw/7MR7o0aL/Frpf+BZgAAAAAAAAAAAAAAAAAABGYSPolbsytJuJK11svGXuw5mDFgInGvgr+SFmR+GmHEXBhXJuCxXxqbBbVILU31iSkRsyxE8eyhJiK6DEhxoLI0J6PhvajmuTeVF3UUD6IzBXvXVwknP8WlmRmCveurhJOf4tAswAAIzC39GpFGrab9Jr0jHVf6sOJGSXiu/KHHiL9yKWZO4TaXFreDq4qTL40mJqmTEOAqb7Yqw12Dk8aO2K/kBRAx1sVSFXLapdbgYutVCTgzTMW9sYjEcn/BTIgAAAAAAAAAAAAAAAAAAAAAHm/qnvrD4D/O0X1suekDzf1T31h8B/naL62XPSBpvdlb8J9ZRHOQAGZIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAjLRzm3x5Uh6hSzIy0c5t8eVIeoUswIxM97uDadJUsyMTPe7g2nSVLMAAABGXJncs7zfVPZizIy5M7lneb6p7MBZkZhM7KWRwkh9FmSzIzCZ2UsjhJD6LMgWYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEZge+kWrNVld11Xq89PI7+tDdMPbBXiWQjNX1WNr1k1yvdunU6PNImLHjWHDc5E8e6h/LEo+1+yKFQV36dTpeVVcePGrIbWquPtrjTfAzQAAAACMwF5lrK8wyfqWlmYex6E22LNo1uMmVmm0uRgyaRlZsFidbYjdlixrix4seLGp3qvPQKXSZypTK4oEpAfHiL3Gsarl/4IBLYKvpUO5q4u7+k7inFRe62XVsm1fuxSuNPvx9ssyWwRyMenYMbclppMU2tOhRpr/54jUfFX/fc4qQAAAAAAAAAAAAAAAAAAA4Z+VgzsjHkplmzgzEN0KI3utcmJU/gpMYHJqNNYLrdSafs5qWkmScy7uxoH7GJ/wA8NxWkZgw+iTN20PeSn3DMPYn9maaycxp4tlMPT70UCzIzBXvXVwknP8WlmYe16E2hpVNjMrH/AEhUY08uNmx2CxMXzd9ceLFvgZgAAAABGYF/2FgwKSu4tGnJulI3uMl5iJCh/ksNrFTxKhZkZY30K+b4pC7iOnpepwm9yHHlmMX+MWXjL96qWYAAAAAAAAAAAAAAAAAAAAAB5v6p76w+A/ztF9bLnpA839U99YfAf52i+tlz0gab3ZW/CfWURzkABmSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIy0c5t8eVIeoUsyMtHObfHlSHqFLMCMTPe7g2nSVLMjEz3u4Np0lSzAAAARlyZ3LO831T2YsyMuTO5Z3m+qezAWZGYTOylkcJIfRZksyMwmdlLI4SQ+izIFmAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIzDF9ItSWoybrqvVpGRVv9aG6YY6MnEtilmRl3/TsJdk0vfSWdO1h6eKFBSWTH+c6i/emPtFmAAAAAACNw1Oc/BpVaaxVR9XWDSG4l3cc3GZLbn3JFVfFixlkRmEL6Zc9k0ZN1sWsOnYyf+nLy8V6L+UZYAFk1rWtRrURrUTEiIm4iH9AAAAAAAAAAAAAAAAAAAAARlM+g4Zq1L70Oq0WUm4ad2JBixocVf92JLp+RZkZd/wBCwk2TVd5Jl87SHr4osD5QmP8A2pNE+9U7oFmAAAAAAACMmPoGGuTibzKzb8WE5e6+UjscxPvxTcVU+5SzIzCP9Drll1pNxsrXGy0Ze7DmYEWAica+Cv5FmAAAAAAAAAAAAAAAAAAAAAAeb+qe+sPgP87RfWy56QPN/VPfWHwH+dovrZc9IGm92Vvwn1lEc5AAZkgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACMtHObfHlSHqFLMjLRzm3x5Uh6hSzAjEz3u4Np0lSzIxM97uDadJUswAAAEZcmdyzvwFT9mLMjLkzuWd+AqfswFmRmEzsnZPCSH0aZLMjMJnZOyeEkPo0yBZgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACMpf07DLXJnfh0qjSknDXuRI0SNFip/usl1/MsyMwXfS4111zf/AEjcMy1i/wBmWRkniTxY5Zy/mq9sswAAAAAARjvp+G1ib7aLbrlXuI6cmExfnikl/JV7pZkZYP0y774rC7rXVSFIQXd2HLy0LH/CNEjp+QFmAAAAAAAAAAAAAAAAAAAAAEZhi+j2nL1hNx1Iq0jPK7+rDZMMSMvEui/xLMw19UfbBZVcoPbqNOjyqLjxYliQ3NRfFvgZkGFsOsbYLIoVeXfqNOl5pyYsWJXw2uVF7i41M0AAAAAAR+GmG9cGFbnITVfGpkJlVhNTfV8pEbMtRPHjhIV0GIyNCZFhOR7HtRzXJvKi7ynHPysGekJiSmW7OBMQnQoje61yKip/BSZwOzUabwXW6s07ZzcvIslJp3djQP2MT/nY4CsAAAAAAAAAAAAAAAAAAGDv2er1Ms6p1G2KdL1KrysBY0tJxnK1sdW7qsRU3dkqIqJ48WM8er1bF0ouJbIo6Kn/ALmKe3j89ercwXbScIq3NS5fYUO4XvjIjW4mwJrfis8SOx7NPvcifuno+z6bNyqaLkceileY4wxeEXqiq1el92ddk1blPlI9rTTpiBBhxnq2OquhuxOVd1P8mm93S/8A12Lo0Io3KYh5RM7g/taqXtedLtajQ9nO1GOkJir+7Dbvue7+y1qK5fEinsV6Sxs/2p4Q57Uv0M6mLCndmFmk1Ku1e25CkUiXiJLysSDFe50xF334tl/Rait3e2rsXaU3IYOwbWpdlWbS7Wo0PYSVOgJCYqp85677nu/tOcquXxqpnD5q7VTVXM0RiHaAAHNIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIy0c5t8eVIeoUsyMtHObfHlSHqFLMCMTPe7g2nSVLMjEz3u4Np0lSzAAAARlyZ3LO/AVP2YsyMuTO5Z34Cp+zAWZGYTOydk8JIfRpksyMwmdk7J4SQ+jTIFmAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcFRm4EhT5memXbCBLQnRYju41qKqr/AAQ5yOw0vfkxrMjCcrYtUhw6VDVF3UfNxGSzVTx44qAcuB6UjyeC+3GzbdjNx5CHNTSdyPGTrsX/AJ3uKw+YTGQobYcNqNYxEa1qJuIibyH0AAAAAAFVETGu4hG4FUWLg5p9UX96sRZir417aTUeJMN/g2I1E8SIdzCtUY1KwaXJPSv/AHqHTY6SyY8WOM5ithp+b1an5maoVOg0ihyFJlv8hJS0OXh7n9FjUan/AAQDuAAAAAAAAAAAAAAAAAAAAAAAAjMD30e1ZqjLuOpFXnpFG/1YbZh7oKcS+EWZGWj9Cwl3tS95Jl0lWGp/8sFZZcX5ySr964+2WYAAAAAAIzBf9Ej3ZQ95KdcMy5if2ZlrJzGni2Uy5PvRe4WZGUv6DhlrktvQ6rRpSchp3YkGJGhRV/3Xy6fkBZgAAAAAAAAAAAAAAAAAARuGiwpDCTg6qdqz2xZEjs65Jx3f+BMNxrDf92PcXutVydssgWpqmmYqjnA/H+u0ufodanaNVJZ8tPSUd8vMQnb7HtVUcn8UPbPUDYLkottRsI9Xl8U/VmLBprXpuwpVF+c9O4r3J/utTFuOUyvVB9TozCBhgt256d1uXkJ2K2DcexXYu2ENuybEb3XPa3rWPtLsF7p6MkZWXkZKBJScGHAlpeG2FBhMTE1jGpia1E7SIiIh6ur10XLMU0855udNOJcwAPIdAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABGWjnNvjypD1ClmRlo5zb48qQ9QpZgRiZ73cG06SpZkYme93BtOkqWYAAACMuTO5Z34Cp+zFmRlyZ3LO/AVP2YCzIzCZ2TsnhJD6NMlmRmEzsnZPCSH0aZAswAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACMwi/TLgsqiputmK38qjJ/6ctAixkXjWwE/MsyMjfT8NkuzfbRbeiRHJ3HTkw1rV+/FJxET71AswAAAAAAARmFf6VJ29Q03VqtwyUNU/rNgPWben3KyWei+LGWZGV/6dhdteR34dPp89Un/ANmIvWoEP+LYsf8AgpZgAAAAAAAAAAAAAAAAAAAAAAAARlU+g4ZaHM70Oq0abk4i92JBiQYsJP8AdfML+RZkZhQ+iR7Trm8lOuGWa9f7My18niXxbKZav3oncLMAAAAAAEZd30LCXZNU3kmXTtHcviiwUmUx/nJIn3ri7ZZkZhi+j2rK1lNx1Iq8jPK7+rDbMMbGXiXxQLMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEZaOc2+PKkPUKWZGWjnNvjypD1ClmBGJnvdwbTpKlmRiZ73cG06SpZgAAAIy5M7lnfgKn7MWZGXJncs78BU/ZgLMjMJnZOyeEkPo0yWZGYTOydk8JIfRpkCzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIyxPpt63xWF3W/pGBTYLu7DgS0Ny/wixoyfkWZGYFv2+D2Tqy7q1mYmasju6yajxIzPyRj2IniRALMAAAAAAAEZbf07Cvd1R32SMrIUlv9l7WxJl/5qk1Cx+ShZkZgk+k0is1td+q16ejov9ZkOMsvCd+cOBDX7lQswAAAAAAAAAAAAAAAAAAAAAAAAJPDFKxpvBdcSSrdnNy8i+blW92NA/bQ/wDnY0pafNQZ6Ql52Wds4ExCbFhu7rXIiov8FOWLDZFhPhRWo9j2q1zV3lRd9CRwLRHrgwoknFcr4tMhPpUVy76vlIjpZyr48cJQLAAAAAAMLflH2wWRXaCm/UadMSrVx4sSvhuai+Jca75mgBhrFrG2CyaHXu3UadAml3MWJYkNrlTxb5mSMwO/R7TmaOu46kVaekUb/VhsmHrBTiXQv4lmAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARlo5zb48qQ9QpZkZaOc2+PKkPUKWYEYme93BtOkqWZGJnvdwbTpKlmAAAAjLkzuWd+AqfsxZkZcmdyzvwFT9mAsyMwmdk7J4SQ+jTJZkZhM7J2Twkh9GmQLMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE3hSqcaj4N7jqUtj+UwabHWWRN90ZWKkNPzerU/My1u0yDRbfp1Hl8XWZCVhS0PF/VYxGp/wQmsLP0qn0Ghpv1W4JGEqf1mQYnyqI37lhyz0XxKpZgAAAAAAx1z1SFQ7aqlbj4utU+TjTT8e9sYbFcv/BDIkZho/b2DHpKbq1mclKUre6yYmIcKJ+SQ3PVfEigZHBlS4tEwdW7SZjGsxK0yXhx1XfdFSGmzcvjV2yX8yiAAAAAAAAAAAAAAAAAAAAAAAAAAEZg4+h129KKu42VrjpmCndhzMCFHVeNfGT8izIyX+gYa5yHvNrNvworU7r5SO9r1+/FNwkX7kAswAAAAAAARlofQsJN7UreSZfJVdieKLA+Tri/2pNV+9V7pZkZU/oOGaizG9DqtFm5SIvdiQYsGJCT/AHYkwv5FmAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARlo5zb48qQ9QpZkZaOc2+PKkPUKWYEYme93BtOkqWZGJnvdwbTpKlmAAAAjLkzuWd+AqfsxZkZcmdyzvwFT9mAsyMwmdk7J4SQ+jTJZkZhM7J2Twkh9GmQLMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEZcH07C3ashvsp8jPVN/8AZifspeH/ABbHj/7qlmRlufTsLN21DfZISkhSmf2Xo2JMxPzVszBx+ShZgAAAAAAjL5+m3zY9ITdRs/MVOK3uw4Es9ifwizEFfvRCzIyX+n4a5yJvto1vwoTV7j5uO9z0+/FKQlX70AswAAAAAAAACawmVScplpR4dKiIyr1B7KfTVxY9jMRl2DX4u2jMaxHf2WOAiqJU5+PhXlbuiTcVaJW5mbt2Tg7Jetoku1YkONi3sbokCdRHf0mvheLHtohMIFChUfBL8mocu9VtmDLz1PhJuvd8jVsRIaL21e2GrF7uzXultJzECclIM3LRWxYEeG2JCe3ec1yY0VPvRQOUAAAAAAAAAAAAAIy+foV82PV03EdPzFMiu7kOPLPen8YsvBT71QsyMw0fsLBj1ZNxaNNylVV3cZLzEOLE/JYbXoviVQLMAAAAAAAEZhP+iTNpVzeSn3DLsev9maa+TxL4tlMMX70QsySwxysaawXXEsqzZzUtJPnJZvdjQP20P/nhtKeRmoM7IwJ2Wfs4MxDbFhu7rXJjRf4KBzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIy0c5t8eVIeoUsyMtHObfHlSHqFLMCMTPe7g2nSVLMjEz3u4Np0lSzAAAARlyZ3LO/AVP2YsyMuTO5Z34Cp+zAWZGYTOydk8JIfRpksyMwmdk7J4SQ+jTIFmAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACMwSfSaVWq2u/Vq9PR0X+syHFWWhO/OHLw1TxKhZkDRcGjqPSpemU6/rygSkszYQmJMSy4k+9YG6dvaNP+EW8+PlfgAWYIzaNP+EW8+PlfgDaNP+EW8+PlfgAWYIzaNP8AhFvPj5X4A2jT/hFvPj5X4AFmRmDj6ZXb0rS7rZquOloK9yHLQIUBU41kZfzG0af8It58fK/AOnR8Gb6TJulJC/7yhQXR40w5PlEsuOJFiOixHL+w33Pe5y/eBfgjNo0/4Rbz4+V+ANo0/wCEW8+PlfgAWYIzaNP+EW8+PlfgDaNP+EW8+PlfgAWYIzaNP+EW8+PlfgDaNP8AhFvPj5X4AFmRj/5fwrsZ+9I2tLdcXuLPzLVan+1Dl9l+U0g2jT/hFvPj5X4BnLUt+Ut2nxZaXmJqbizEd0zMzU09HxpiK7EiveqIiY9i1rUxIiIjUTFuAZZ7WvarXNRzVTEqKmNFQjsDznS1nrb0VyrFt6bjUhUVca9agu+jqvjWXdBd/tfmWRGU7+ScL9Uk/wB2BX6ZCqEJO7MSzkgR1/OHElE/2V/ILMAk8KM7Py1Ep8jS56NITdUq0nItmIKNWJDhuio6MrdkipsutNiYlVFxb/aArARm0af8It58fK/AG0af8It58fK/AAswRm0af8It58fK/AG0af8ACLefHyvwALMEZtGn/CLefHyvwBtGn/CLefHyvwALMEZtGn/CLefHyvwBtGn/AAi3nx8r8ACzMdc9LhVy2qpRI+LrVQk40q/HvbGIxWr/AMFJ3aNP+EW8+PlfgDaNP+EW8+PlfgAZHBjVItbwdW7VpjGkxNUyXiR0XfbF62mzavjR2yT8iiICjYM3UentkKff95QZZj4j2sSYllRqve57sX7DexuU7m0af8It58fK/AAswRm0af8ACLefHyvwBtGn/CLefHyvwALMEZtGn/CLefHyvwBtGn/CLefHyvwALGNDhxoL4MViPhvarXNXeVF3FQkcC0SIuC+hykZ6vjU2C6lxnLvrElIjpZ6r49lCXGfG0af8It58fK/AMvZNtS9q0qPT5eoVCfSPNxpyJGnXsdEWJFds3/uNamJXKq72+qgZwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABGWjnNvjypD1ClmRlo5zb48qQ9QpZgRiZ73cG06SpZkYme93BtOkqWYAAACMuTO5Z34Cp+zFmRlyZ3LO/AVP2YCzIzCZ2TsnhJD6NMlmRmEzsnZPCSH0aZAswAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAjMJ38nzFtXQ3cSlVeFDmF7svNY5Z6L/ZR0WFEX/4izMVeNFhXHadWoEZ6w2VGTiy2zTfYr2K1HJ3FRVRUXtKgGVIy9/pV/wBiU7fSFPTdRendbClIkL/g6ZYv3ohlsHtai3DZFHrEyxIc1MyrFmoaf+HHRNjFZ/svRzfyMTF+l4bpdN9KVbcVV8SzUyzF0Nf+IFmAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAjLRzm3x5Uh6hSzIy0c5t8eVIeoUswIxM97uDadJUsyMTPe7g2nSVLMAAABGXJncs78BU/ZizIy5M7lnfgKn7MBZkZhN7J2TwkhdGmCzIzCb2TsnhJC6NMAWYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIzB9/JlyXbbC/NZL1FKnKt/8AQnEWI5fzmGzf8BaP0rCdfFQ3/k6yFLx9zrcBZjF//mY/zFw/yVhTturJ82DVpeYo0wvdiI1ZmAq/ckKZanjiInb3WCj6RJ3HVt/5fcc+uPupAi/JEX+Eun5AWYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACMtHObfH3yHqFLMjLRzm3x98h6hSzAjEz3rwbTpKlmRiZ714Np0lSzAAAARlyZ3LO/AVP2YsyMuTO5Z34Cp+zAWZGYTeydk8JIXRpgsyMwm9k7J4SQujTAFmAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACQwwwIq4P5+pyrFfN0Z0Ory7W/vOdKvSMrE8trHM+56nxgRaq4JramnpifPyLKg9P7Uxjju/PHEUsgm4mJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACMtHObfH3yHqFLMjLRzm3x98h6hSzAjEz3rwbTpKlmRiZ714Np0lSzAAAARlyZ3LO/AVP2YsyMuTO5Z34Cp+zAWZGYTeydk8JIXRpgsyMwm9k7J4SQujTAFmAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACMtHObfH3yHqFLMjLRzm3x98h6hSzAjEz3rwbTpKlmRiZ714Np0lSzAAAARlyZ3LO/AVP2YsyMuTO5Z34Cp+zAWZGYTeydk8JIXRpgsyMwm9k7J4SQujTAFmAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACMtHObfH3yHqFLMjLRzm3x98h6hSzAjEz3rwbTpKlmRiZ714Np0lSzAAAARlyZ3LO/AVP2YsyMuTO5Z34Cp+zAWZGYTeydk8JIXRpgsyLwrJMwmW1U4FPnp6FTq5CmZmHJy7o0VsPrMZmyRjcbnfOe3eTt494C0BGZRJDRq8/R2a1BlEkNGrz9HZrUAswRmUSQ0avP0dmtQZRJDRq8/R2a1ALMEZlEkNGrz9HZrUGUSQ0avP0dmtQCzBGZRJDRq8/R2a1BlEkNGrz9HZrUAswRmUSQ0avP0dmtQZRJDRq8/R2a1ALMEZlEkNGrz9HZrUGUSQ0avP0dmtQCzBGZRJDRq8/R2a1BlEkNGrz9HZrUAswRmUSQ0avP0dmtQZRJDRq8/R2a1ALMEZlEkNGrz9HZrUGUSQ0avP0dmtQCzBGZRJDRq8/R2a1BlEkNGrz9HZrUAswRmUSQ0avP0dmtQZRJDRq8/R2a1ALMEZlEkNGrz9HZrUGUSQ0avP0dmtQCzBGZRJDRq8/R2a1BlEkNGrz9HZrUAswRmUSQ0avP0dmtQZRJDRq8/R2a1ALMEZlEkNGrz9HZrUGUSQ0avP0dmtQCzBGZRJDRq8/R2a1BlEkNGrz9HZrUAswRmUSQ0avP0dmtQZRJDRq8/R2a1ALMEZlEkNGrz9HZrUGUSQ0avP0dmtQCzBGZRJDRq8/R2a1BlEkNGrz9HZrUAswRmUSQ0avP0dmtQZRJDRq8/R2a1ALMEZlEkNGrz9HZrUGUSQ0avP0dmtQCzBGZRJDRq8/R2a1BlEkNGrz9HZrUAswRmUSQ0avP0dmtQZRJDRq8/R2a1ALMEZlEkNGrz9HZrUGUSQ0avP0dmtQCzBGZRJDRq8/R2a1BlEkNGrz9HZrUAswRmUSQ0avP0dmtQZRJDRq8/R2a1ALMEZlEkNGrz9HZrUGUSQ0avP0dmtQCzBGZRJDRq8/R2a1BlEkNGrz9HZrUAswRmUSQ0avP0dmtQZRJDRq8/R2a1ALMEZlEkNGrz9HZrUGUSQ0avP0dmtQCzBGZRJDRq8/R2a1BlEkNGrz9HZrUAswRmUSQ0avP0dmtQ/rsIcg1ytW2ryXEuLct6aVP/4AWQIzKJIaNXn6OzWoMokho1efo7NagFmCMyiSGjV5+js1qDKJIaNXn6OzWoBZgjMokho1efo7NagyiSGjV5+js1qAWYIzKJIaNXn6OzWoMokho1efo7NagFmCMyiSGjV5+js1qDKJIaNXn6OzWoBZgjMokho1efo7NagyiSGjV5+js1qAWYIzKJIaNXn6OzWoMokho1efo7NagFmCMyiSGjV5+js1qDKJIaNXn6OzWoBZgjMokho1efo7NagyiSGjV5+js1qAWYIzKJIaNXn6OzWoMokho1efo7NagFmCMyiSGjV5+js1qDKJIaNXn6OzWoBZgjMokho1efo7NagyiSGjV5+js1qAWYIzKJIaNXn6OzWoMokho1efo7NagFmCMyiSGjV5+js1qDKJIaNXn6OzWoBZgjMokho1efo7NagyiSGjV5+js1qAWYIzKJIaNXn6OzWoMokho1efo7NagFmCMyiSGjV5+js1qDKJIaNXn6OzWoBZgjMokho1efo7NagyiSGjV5+js1qAWYIzKJIaNXn6OzWoMokho1efo7NagFmCMyiSGjV5+js1qDKJIaNXn6OzWoBZgjMokho1efo7NagyiSGjV5+js1qAWYIzKJIaNXn6OzWoMokho1efo7NagFmCMyiSGjV5+js1qDKJIaNXn6OzWoBZgjMokho1efo7NagyiSGjV5+js1qAWYIzKJIaNXn6OzWoMokho1efo7NagFmCMyiSGjV5+js1qDKJIaNXn6OzWoBZgjMokho1efo7NagyiSGjV5+js1qAWYIzKJIaNXn6OzWoMokho1efo7NagFmCMyiSGjV5+js1qDKJIaNXn6OzWoBZgjMokho1efo7NagyiSGjV5+js1qAWYIzKJIaNXn6OzWoMokho1efo7NagC0c5t8ffIeoUsyGwdRZio3bdldWl1OQk5yJKMl/l8o+XiRFhwcTlRj0R2JFVEx4sS7vcUuQIxM968G06SpZkYme9eDadJUswAAAEZcmdyzvwFT9mLM19hEq9MoGEa0KtWZyHIyDZWowXTEbchte5JdWtVd5FVGuxJ28S9wDYIIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYI1cKeDtERVvCkojkxp+23z+ZVcHOmNI48CzBGZVcHOmNI48ZVcHOmNI48CzBGZVcHOmNI48ZVcHOmNI48CzBGZVcHOmNI48ZVcHOmNI48CzBGZVcHOmNI48ZVcHOmNI48CzBGZVcHOmNI48ZVcHOmNI48CzBGZVcHOmNI48ZVcHOmNI48CzBGZVcHOmNI48ZVcHOmNI48CzBGZVcHOmNI48ZVcHOmNI48CzBGZVcHOmNI48ZVcHOmNI48CzBGZVcHOmNI48ZVcHOmNI48CzBGZVcHOmNI48ZVcHOmNI48CzBGZVcHOmNI48ZVcHOmNI48CzBGZVcHOmNI48ZVcHOmNI48CzBGZVcHOmNI48ZVcHOmNI48CzBGZVcHOmNI48ZVcHOmNI48CzBGZVcHOmNI48/rsKeDtrla68KSiouJUWNvAWQIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHn9TCpg6VcSXjSV//vAWQIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgWYIzKrg50xpHHjKrg50xpHHgEz3rwbTpKlma5tiv0a5sMMxPUCowKlKy9vtgxo0Bdkxj1mFVGqu8iqiKuLxGxgAAAAw+2m2NI6Py2H7xtptjSOj8th+8DMAw+2m2NI6Py2H7xtptjSOj8th+8DMAw+2m2NI6Py2H7xtptjSOj8th+8DMAw+2m2NI6Py2H7xtptjSOj8th+8DMAw+2m2NI6Py2H7xtptjSOj8th+8DMAw+2m2NI6Py2H7xtptjSOj8th+8DMAw+2m2NI6Py2H7xtptjSOj8th+8DMAw+2m2NI6Py2H7xtptjSOj8th+8DMAw+2m2NI6Py2H7xtptjSOj8th+8DMAw+2m2NI6Py2H7xtptjSOj8th+8DMAw+2m2NI6Py2H7xtptjSOj8th+8DMAw+2m2NI6Py2H7xtptjSOj8th+8DMAw+2m2NI6Py2H7xtptjSOj8th+8DMAw+2m2NI6Py2H7xtptjSOj8th+8DMAw+2m2NI6Py2H7xtptjSOj8th+8DMAw+2m2NI6Py2H7xtptjSOj8th+8DMAw+2m2NI6Py2H7z+7abZxY9sdH5bD94GXBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3n9W6bZRcS3FSEX8bD94GXBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBh9tNsaR0flsP3jbTbGkdH5bD94GYBiNtNs6R0flsP3n8202xpHR+Ww/eBmAYfbTbGkdH5bD94202xpHR+Ww/eBmAYfbTbGkdH5bD94202xpHR+Ww/eBmAYfbTbGkdH5bD94202xpHR+Ww/eBmAYfbTbGkdH5bD94202xpHR+Ww/eBmAYfbTbGkdH5bD94202xpHR+Ww/eBmAYfbTbGkdH5bD94202xpHR+Ww/eBmAYfbTbGkdH5bD94202xpHR+Ww/eBmAYfbTbGkdH5bD94202xpHR+Ww/eBmAYfbTbGkdH5bD94202xpHR+Ww/eBmAYfbTbGkdH5bD94202xpHR+Ww/eBmAYfbTbGkdH5bD94202xpHR+Ww/eBmAYfbTbGkdH5bD94202xpHR+Ww/eBmAYfbTbGkdH5bD94202xpHR+Ww/eBmAYfbTbGkdH5bD94202xpHR+Ww/eBmAYfbTbGkdH5bD94202xpHR+Ww/eBmAYfbTbGkdH5bD94202xpHR+Ww/eBmAYfbTbGkdH5bD94A//2Q==" alt="Strain Plate Diagram">
+                <svg id="overlayCanvas" viewBox="0 0 1073 992" xmlns="http://www.w3.org/2000/svg">
+                    <!-- 
+                    ========================================================
+                    MANUAL SVG POSITION EDITING GUIDE
+                    ========================================================
+                    
+                    To manually adjust text positions, modify the x and y values:
+                    - x: horizontal position (left to right, 0 to 1073)
+                    - y: vertical position (top to bottom, 0 to 992)
+                    - For rotated text (w and t), also update the rotation center
+                    
+                    Current positions:
+                    - w: x="250" y="350" (rotated -90°)
+                    - b: x="600" y="580"
+                    - t: x="250" y="640" (rotated -90°)
+                    - T: x="860" y="655"
+                    - V: x="695" y="820"
+                    - L: x="720" y="525"
+                    - l: x="625" y="360"
+                    
+                    ========================================================
+                    -->
+                    
+                    <!-- SVG Overlays for parameters -->
+                    <defs>
+                        <filter id="textBackground" x="-0.2" y="-0.5" width="1.4" height="2">
+                            <feFlood flood-color="white" flood-opacity="0.95"/>
+                            <feComposite in="SourceGraphic"/>
+                        </filter>
+                    </defs>
+                    
+                    <!-- Width (w) -->
+                    <text id="svgWidth" x="250" y="350" 
+                          font-family="Arial, sans-serif" 
+                          font-size="30" 
+                          font-weight="bold" 
+                          fill="#e74c3c" 
+                          text-anchor="middle"
+                          transform="rotate(-90, 250, 350)"
+                          filter="url(#textBackground)">
+                    w
+                    </text>
+                    
+                    <!-- Length (b) -->
+                    <text id="svgLength" x="600" y="580" 
+                          font-family="Arial, sans-serif" 
+                          font-size="30" 
+                          font-weight="bold" 
+                          fill="#e74c3c" 
+                          text-anchor="middle"
+                          filter="url(#textBackground)">
+                    b
+                    </text>
+                    
+                    <!-- Thickness (t) -->
+                    <text id="svgThickness" x="250" y="640" 
+                          font-family="Arial, sans-serif" 
+                          font-size="30" 
+                          font-weight="bold" 
+                          fill="#27ae60" 
+                          text-anchor="middle"
+                          transform="rotate(-90, 250, 640)"
+                          filter="url(#textBackground)">
+                    t
+                    </text>
+                    
+                    <!-- Load T -->
+                    <text id="svgLoadT" x="740" y="525" 
+                          font-family="Arial, sans-serif" 
+                          font-size="28" 
+                          font-weight="bold" 
+                          fill="#3498db" 
+                          text-anchor="start"
+                          filter="url(#textBackground)">
+                    T
+                    </text>
+                    
+                    <!-- Load V -->
+                    <text id="svgLoadV" x="695" y="820" 
+                          font-family="Arial, sans-serif" 
+                          font-size="28" 
+                          font-weight="bold" 
+                          fill="#3498db" 
+                          text-anchor="middle"
+                          filter="url(#textBackground)">
+                    V
+                    </text>
+                    
+                    <!-- Load L -->
+                    <text id="svgLoadL" x="880" y="685" 
+                          font-family="Arial, sans-serif" 
+                          font-size="28" 
+                          font-weight="bold" 
+                          fill="#3498db" 
+                          text-anchor="middle"
+                          filter="url(#textBackground)">
+                    L
+                    </text>
+                    
+                    <!-- Length at attachment hole (l) - positioned near the bolt holes -->
+                    <text id="svgLengthHole" x="625" y="360" 
+                          font-family="Arial, sans-serif" 
+                          font-size="28" 
+                          font-weight="bold" 
+                          fill="#9b59b6" 
+                          text-anchor="middle"
+                          filter="url(#textBackground)">
+                    l
+                    </text>
+                </svg>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="input-section">
+                <h2 class="section-title">Input Parameters</h2>
+                
+                <div class="inputs-grid">
+                    <div class="input-group">
+                        <label>Width, w <span class="unit">(in)</span></label>
+                        <input type="number" id="width" step="0.125" placeholder="6.0">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Length, b <span class="unit">(in)</span></label>
+                        <input type="number" id="length" step="0.125" placeholder="4.0">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Length at attachment hole, l <span class="unit">(in)</span></label>
+                        <input type="number" id="lengthHole" step="0.125" placeholder="3.0">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Hole Diameter <span class="unit">(in)</span></label>
+                        <select id="holeDiameter">
+                        <option value="">Select diameter...</option>
+                        <option value="0.25">1/4" (0.25)</option>
+                        <option value="0.375">3/8" (0.375)</option>
+                        <option value="0.5">1/2" (0.5)</option>
+                        <option value="0.625">5/8" (0.625)</option>
+                        <option value="0.6875">11/16" (0.6875)</option>
+                        <option value="0.75">3/4" (0.75)</option>
+                        <option value="0.875">7/8" (0.875)</option>
+                        <option value="1.0">1" (1.0)</option>
+                        <option value="1.125">1 1/8" (1.125)</option>
+                        <option value="1.25">1 1/4" (1.25)</option>
+                        <option value="1.375">1 3/8" (1.375)</option>
+                        <option value="1.5">1 1/2" (1.5)</option>
+                        <option value="1.625">1 5/8" (1.625)</option>
+                        <option value="1.75">1 3/4" (1.75)</option>
+                        <option value="1.875">1 7/8" (1.875)</option>
+                        <option value="2.0">2" (2.0)</option>
+                        <option value="2.125">2 1/8" (2.125)</option>
+                        <option value="2.25">2 1/4" (2.25)</option>
+                        <option value="2.375">2 3/8" (2.375)</option>
+                        <option value="2.5">2 1/2" (2.5)</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Pin Diameter <span class="unit">(in)</span></label>
+                        <select id="pinDiameter">
+                        <option value="">Select diameter...</option>
+                        <option value="0.25">1/4" (0.25)</option>
+                        <option value="0.375">3/8" (0.375)</option>
+                        <option value="0.5">1/2" (0.5)</option>
+                        <option value="0.625">5/8" (0.625)</option>
+                        <option value="0.6875">11/16" (0.6875)</option>
+                        <option value="0.75">3/4" (0.75)</option>
+                        <option value="0.875">7/8" (0.875)</option>
+                        <option value="1.0">1" (1.0)</option>
+                        <option value="1.125">1 1/8" (1.125)</option>
+                        <option value="1.25">1 1/4" (1.25)</option>
+                        <option value="1.375">1 3/8" (1.375)</option>
+                        <option value="1.5">1 1/2" (1.5)</option>
+                        <option value="1.625">1 5/8" (1.625)</option>
+                        <option value="1.75">1 3/4" (1.75)</option>
+                        <option value="1.875">1 7/8" (1.875)</option>
+                        <option value="2.0">2" (2.0)</option>
+                        <option value="2.125">2 1/8" (2.125)</option>
+                        <option value="2.25">2 1/4" (2.25)</option>
+                        <option value="2.375">2 3/8" (2.375)</option>
+                        <option value="2.5">2 1/2" (2.5)</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label>End Distance <span class="unit">(in)</span></label>
+                        <input type="number" id="endDistance" step="0.125" placeholder="2.0">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Allowable Stress, Fy <span class="unit">(ksi)</span></label>
+                        <input type="number" id="allowableStress" step="1" value="50" placeholder="50">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Tensile Stress, Fu <span class="unit">(ksi)</span></label>
+                        <input type="number" id="tensileStress" step="1" value="65" placeholder="65">
+                    </div>
+                </div>
+
+                <h2 class="section-title" style="margin-top: 15px;">Applied Loads</h2>
+                
+                <div class="inputs-grid">
+                    <div class="input-group">
+                        <label>Load T <span class="unit">(kips)</span></label>
+                        <input type="number" id="loadT" step="0.1" placeholder="10">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Load V <span class="unit">(kips)</span></label>
+                        <input type="number" id="loadV" step="0.1" placeholder="5">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Max Utilization Limit <span class="unit">(%)</span></label>
+                        <input type="number" id="maxUtilization" step="1" value="90" min="1" max="100" placeholder="90">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Load L <span class="unit">(kips)</span></label>
+                        <input type="number" id="loadL" step="0.1" placeholder="15">
+                    </div>
+                </div>
+
+                <button class="calculate-btn" onclick="calculate()">Calculate Required Thickness</button>
+                <button class="reset-btn" onclick="resetForm()">Reset All</button>
+                <button class="print-btn" onclick="printToPDF()">Print / Save as PDF</button>
+            </div>
+
+            <div class="results-section">
+                <h2 class="section-title">Results</h2>
+                
+                <div class="result-item" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-left: none; margin-bottom: 12px;">
+                    <div class="result-label" style="color: rgba(255,255,255,0.9);">Required Thickness</div>
+                    <div class="result-value" id="thickness" style="color: white; font-size: 29px;">-<span class="result-unit" style="color: rgba(255,255,255,0.9);">inches</span></div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <!-- X Direction Column -->
+                    <div>
+                        <h3 style="font-size: 14px; font-weight: 600; color: #2c3e50; margin-bottom: 8px; text-align: center; background: #e8f4f8; padding: 4px; border-radius: 4px;">X</h3>
+                        
+                        <div class="result-item">
+                            <div class="result-label">Sx</div>
+                            <div class="result-value" id="sx" style="font-size: 17px;">-<span class="result-unit">in³</span></div>
+                        </div>
+
+                        <div class="result-item">
+                            <div class="result-label">Mx</div>
+                            <div class="result-value" id="mx" style="font-size: 17px;">-<span class="result-unit">kip-in</span></div>
+                        </div>
+
+                        <div class="result-item">
+                            <div class="result-label">σx</div>
+                            <div class="result-value" id="sigmaX" style="font-size: 17px;">-<span class="result-unit">ksi</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Y Direction Column -->
+                    <div>
+                        <h3 style="font-size: 14px; font-weight: 600; color: #2c3e50; margin-bottom: 8px; text-align: center; background: #e8f4f8; padding: 4px; border-radius: 4px;">Y</h3>
+                        
+                        <div class="result-item">
+                            <div class="result-label">Sy</div>
+                            <div class="result-value" id="sy" style="font-size: 17px;">-<span class="result-unit">in³</span></div>
+                        </div>
+
+                        <div class="result-item">
+                            <div class="result-label">My</div>
+                            <div class="result-value" id="my" style="font-size: 17px;">-<span class="result-unit">kip-in</span></div>
+                        </div>
+
+                        <div class="result-item">
+                            <div class="result-label">σy</div>
+                            <div class="result-value" id="sigmaY" style="font-size: 17px;">-<span class="result-unit">ksi</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Z Direction Column -->
+                    <div>
+                        <h3 style="font-size: 14px; font-weight: 600; color: #2c3e50; margin-bottom: 8px; text-align: center; background: #e8f4f8; padding: 4px; border-radius: 4px;">Z</h3>
+                        
+                        <div class="result-item">
+                            <div class="result-label">Cross Section Area</div>
+                            <div class="result-value" id="crossSectionArea" style="font-size: 17px;">-<span class="result-unit">in²</span></div>
+                        </div>
+
+                        <div class="result-item">
+                            <div class="result-label">σ Axial</div>
+                            <div class="result-value" id="sigmaAxial" style="font-size: 17px;">-<span class="result-unit">ksi</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Combined Stress and Stress Utilization -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <div class="result-item">
+                        <div class="result-label">σ Combined</div>
+                        <div class="result-value" id="combinedStress" style="font-size: 17px;">-<span class="result-unit">ksi</span></div>
+                    </div>
+
+                    <div class="result-item">
+                        <div class="result-label">Stress Utilization (σ / Fy)</div>
+                        <div class="result-value" id="stressUtilization" style="font-size: 17px;">-<span class="result-unit">%</span></div>
+                    </div>
+                </div>
+                <!-- Hidden element to maintain JS compatibility -->
+                <div id="utilization" style="display:none;"></div>
+
+                <!-- ASCE 10 Section 4.6 Check -->
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 2px solid #667eea;">
+                    <h3 style="font-size: 16px; font-weight: 600; color: #2c3e50; margin-bottom: 6px;">ASCE 10 Section 4.6 - Attachment Hole Strength Check</h3>
+                    <p style="font-size: 12px; color: #555; margin-bottom: 10px; line-height: 1.5;">
+                        Governing attachment hole strength is the <strong>lower</strong> of Eq. 4.6-1 and Eq. 4.6-2.
+                        If the plate does not have adequate strength, increase the plate thickness (t) and rerun the calculation.
+                    </p>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <div class="result-item">
+                            <div class="result-label">Load at Attachment, P</div>
+                            <div class="result-value" id="loadP" style="font-size: 17px;">-<span class="result-unit">kips</span></div>
+                        </div>
+
+                        <div class="result-item">
+                            <div class="result-label">dh/d Ratio</div>
+                            <div class="result-value" id="pinRatio" style="font-size: 17px;">-</div>
+                        </div>
+                    </div>
+
+                    <div class="result-item">
+                        <div class="result-label">Pin Diameter Check</div>
+                        <div class="result-value" id="pinCheck" style="font-size: 15px;">-</div>
+                    </div>
+
+                    <div class="result-item">
+                        <div class="result-label">Attachment Hole Strength (Eq. 4.6-1)</div>
+                        <div class="result-value" id="holeStrength1" style="font-size: 17px;">-<span class="result-unit">kips</span></div>
+                    </div>
+
+                    <div class="result-item">
+                        <div class="result-label">Attachment Hole Strength (Eq. 4.6-2)</div>
+                        <div class="result-value" id="holeStrength2" style="font-size: 17px;">-<span class="result-unit">kips</span></div>
+                    </div>
+
+                    <div class="result-item">
+                        <div class="result-label">Governing Attachment Hole Strength</div>
+                        <div class="result-value" id="governingStrength" style="font-size: 17px;">-<span class="result-unit">kips</span></div>
+                    </div>
+
+                    <div class="result-item">
+                        <div class="result-label">Hole Strength Utilization (P / Governing Strength)</div>
+                        <div class="result-value" id="holeUtilization" style="font-size: 17px;">-<span class="result-unit">%</span></div>
+                    </div>
+
+                    <div class="result-item" id="attachmentCheckResult" style="background: white;">
+                        <div class="result-label">Attachment Hole Adequacy</div>
+                        <div class="result-value" id="attachmentCheck" style="font-size: 15px;">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Result Summary -->
+        <div style="background: #2c3e50; padding: 20px; margin: 15px; border-radius: 6px;">
+            <h2 style="font-size: 18px; font-weight: 600; color: white; margin-bottom: 14px; padding-bottom: 6px; border-bottom: 2px solid #667eea;">Result Summary</h2>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                <div style="background: rgba(255,255,255,0.08); padding: 12px; border-radius: 6px; border-left: 3px solid #667eea;">
+                    <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Required Thickness</div>
+                    <div id="sum_thickness" style="font-size: 20px; font-weight: 700; color: white;">-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span></div>
+                </div>
+                <div style="background: rgba(255,255,255,0.08); padding: 12px; border-radius: 6px; border-left: 3px solid #667eea;">
+                    <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Hole Diameter</div>
+                    <div id="sum_holeDiameter" style="font-size: 20px; font-weight: 700; color: white;">-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span></div>
+                </div>
+                <div style="background: rgba(255,255,255,0.08); padding: 12px; border-radius: 6px; border-left: 3px solid #667eea;">
+                    <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Pin Diameter</div>
+                    <div id="sum_pinDiameter" style="font-size: 20px; font-weight: 700; color: white;">-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span></div>
+                </div>
+                <div style="background: rgba(255,255,255,0.08); padding: 12px; border-radius: 6px; border-left: 3px solid #667eea;">
+                    <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">End Distance</div>
+                    <div id="sum_endDistance" style="font-size: 20px; font-weight: 700; color: white;">-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span></div>
+                </div>
+                <div style="background: rgba(255,255,255,0.08); padding: 12px; border-radius: 6px; border-left: 3px solid #667eea;">
+                    <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Yield Stress, Fy</div>
+                    <div id="sum_yieldStress" style="font-size: 20px; font-weight: 700; color: white;">-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> ksi</span></div>
+                </div>
+                <div style="background: rgba(255,255,255,0.08); padding: 12px; border-radius: 6px; border-left: 3px solid #3498db;">
+                    <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Governing Utilization</div>
+                    <div id="sum_utilization" style="font-size: 20px; font-weight: 700; color: #3498db;">-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> %</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Note -->
+        <div style="background: #f8f9fa; padding: 15px; margin: 15px; border-radius: 6px; border-top: 2px solid #ddd;">
+            <p style="font-size: 11px; color: #7f8c8d; text-align: center; margin: 0; line-height: 1.6;">
+                © All rights reserved. This tool may not be distributed, copied, or reproduced without explicit written permission.<br>
+                <em>Disclaimer: The designer is not responsible for any errors, omissions, or results obtained from the use of this calculator. Users are advised to verify all calculations independently.</em>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Function to format number by removing trailing zeros after decimal
+        function formatNumber(num, decimals) {
+            let formatted = num.toFixed(decimals);
+            // Remove trailing zeros after decimal point
+            formatted = formatted.replace(/(\.\d*?)0+$/, '$1');
+            // Remove decimal point if no decimals remain
+            formatted = formatted.replace(/\.$/, '');
+            return formatted;
+        }
+
+        // Function to count decimal places in input
+        function getDecimalPlaces(value) {
+            const str = value.toString();
+            if (str.indexOf('.') === -1) return 0;
+            return str.split('.')[1].length || 0;
+        }
+
+        function updateDiagramOverlays() {
+            // Get input values
+            const widthInput = document.getElementById('width').value;
+            const lengthInput = document.getElementById('length').value;
+            const lengthHoleInput = document.getElementById('lengthHole').value;
+            const w = parseFloat(widthInput);
+            const b = parseFloat(lengthInput);
+            const l = parseFloat(lengthHoleInput);
+            const T = parseFloat(document.getElementById('loadT').value);
+            const V = parseFloat(document.getElementById('loadV').value);
+            const LoadL = parseFloat(document.getElementById('loadL').value);
+            
+            // Get thickness from results
+            const thicknessText = document.getElementById('thickness').textContent;
+            const thicknessMatch = thicknessText.match(/([0-9.]+)/);
+            const thickness = thicknessMatch ? parseFloat(thicknessMatch[0]) : null;
+
+            // Update Width (w)
+            if (!isNaN(w) && w > 0) {
+                const decimals = getDecimalPlaces(widthInput);
+                document.getElementById('svgWidth').textContent = 'w = ' + w.toFixed(decimals) + '"';
+            } else {
+                document.getElementById('svgWidth').textContent = 'w';
+            }
+
+            // Update Length (b)
+            if (!isNaN(b) && b > 0) {
+                const decimals = getDecimalPlaces(lengthInput);
+                document.getElementById('svgLength').textContent = 'b = ' + b.toFixed(decimals) + '"';
+            } else {
+                document.getElementById('svgLength').textContent = 'b';
+            }
+
+            // Update Length at hole (l)
+            if (!isNaN(l) && l > 0) {
+                const decimals = getDecimalPlaces(lengthHoleInput);
+                document.getElementById('svgLengthHole').textContent = 'l = ' + l.toFixed(decimals) + '"';
+            } else {
+                document.getElementById('svgLengthHole').textContent = 'l';
+            }
+
+            // Update Thickness (t)
+            if (thickness && thickness > 0) {
+                const formatted = formatNumber(thickness, 3);
+                document.getElementById('svgThickness').textContent = 't = ' + formatted + '"';
+            } else {
+                document.getElementById('svgThickness').textContent = 't';
+            }
+
+            // Update Load T
+            if (!isNaN(T) && T > 0) {
+                document.getElementById('svgLoadT').textContent = 'T = ' + T.toFixed(1) + ' kips';
+            } else {
+                document.getElementById('svgLoadT').textContent = 'T';
+            }
+
+            // Update Load V
+            if (!isNaN(V) && V > 0) {
+                document.getElementById('svgLoadV').textContent = 'V = ' + V.toFixed(1) + ' kips';
+            } else {
+                document.getElementById('svgLoadV').textContent = 'V';
+            }
+
+            // Update Load L
+            if (!isNaN(LoadL) && LoadL > 0) {
+                document.getElementById('svgLoadL').textContent = 'L = ' + LoadL.toFixed(1) + ' kips';
+            } else {
+                document.getElementById('svgLoadL').textContent = 'L';
+            }
+        }
+
+        function calculate() {
+            // Get input values
+            const w = parseFloat(document.getElementById('width').value);
+            const b = parseFloat(document.getElementById('length').value);
+            const l = parseFloat(document.getElementById('lengthHole').value);
+            const dh = parseFloat(document.getElementById('holeDiameter').value);
+            const d = parseFloat(document.getElementById('pinDiameter').value);
+            const endDistance = parseFloat(document.getElementById('endDistance').value);
+            const T = parseFloat(document.getElementById('loadT').value);
+            const V = parseFloat(document.getElementById('loadV').value);
+            const LoadL = parseFloat(document.getElementById('loadL').value);
+            const Fy = parseFloat(document.getElementById('allowableStress').value) || 50;
+            const Fu = parseFloat(document.getElementById('tensileStress').value) || 65;
+            const maxUtilPct = parseFloat(document.getElementById('maxUtilization').value);
+            const maxUtilLimit = (!isNaN(maxUtilPct) && maxUtilPct > 0) ? maxUtilPct / 100 : 0.90;
+            const allowableStressWithLimit = Fy * maxUtilLimit;
+
+            // Validate inputs
+            if (isNaN(w) || isNaN(b) || isNaN(l) || isNaN(T) || isNaN(V) || isNaN(LoadL)) {
+                alert('Please enter all required input values');
+                return;
+            }
+
+            if (w <= 0 || b <= 0 || l <= 0) {
+                alert('Plate dimensions must be greater than zero');
+                return;
+            }
+
+            // Load at attachment point P (used in hole strength check)
+            const P = Math.sqrt(Math.pow(V, 2) + Math.pow(T, 2) + Math.pow(LoadL, 2));
+
+            // Determine whether attachment hole check inputs are available
+            const holeCheckAvailable = !isNaN(dh) && !isNaN(d) && !isNaN(endDistance) && dh > 0 && d > 0 && endDistance > 0;
+
+            // Iterate thickness in 1/8" increments.
+            // At each step compute BOTH utilizations:
+            //   stressUtil  = combinedStress / Fy  (plate stress check)
+            //   holeUtil    = P / governingHoleStrength  (ASCE 10 Sec 4.6, when inputs available)
+            // governingUtil = max(stressUtil, holeUtil)
+            // Stop when governingUtil <= maxUtilLimit.
+            const increment = 0.125;
+            let t = increment;
+            const maxIterations = 200;
+            let iterations = 0;
+
+            while (iterations < maxIterations) {
+                const Sx_i = (w * Math.pow(t, 2)) / 6;
+                const Sy_i = (t * Math.pow(w, 2)) / 6;
+                const sigmaX_i = Sx_i !== 0 ? (V * b) / Sx_i : 0;
+                const sigmaY_i = Sy_i !== 0 ? (T * b) / Sy_i : 0;
+                const sigmaAxial_i = (l * t) !== 0 ? LoadL / (l * t) : 0;
+                const stressUtil_i = (sigmaX_i + sigmaY_i + sigmaAxial_i) / Fy;
+
+                let holeUtil_i = 0;
+                if (holeCheckAvailable) {
+                    const hs1 = 0.75 * (endDistance - 0.5 * dh) * t * Fu;
+                    const hs2 = 1.35 * d * t * Fu;
+                    const gov_i = Math.min(hs1, hs2);
+                    holeUtil_i = gov_i > 0 ? P / gov_i : Infinity;
+                }
+
+                const governingUtil_i = Math.max(stressUtil_i, holeUtil_i);
+
+                if (governingUtil_i <= maxUtilLimit) {
+                    break;
+                }
+
+                t += increment;
+                iterations++;
+            }
+
+            if (iterations >= maxIterations) {
+                alert('Could not find a suitable thickness within reasonable range. Please review input values.');
+                return;
+            }
+
+            // Final values at converged thickness
+            const Sx = (w * Math.pow(t, 2)) / 6;
+            const Sy = (t * Math.pow(w, 2)) / 6;
+            const Mx = V * b;
+            const My = T * b;
+            const sigmaX = Sx !== 0 ? Mx / Sx : 0;
+            const sigmaY = Sy !== 0 ? My / Sy : 0;
+            const sigmaAxial = (l * t) !== 0 ? LoadL / (l * t) : 0;
+            const crossSectionArea = l * t;
+            const combinedStress = sigmaX + sigmaY + sigmaAxial;
+            const stressUtil = combinedStress / Fy;                     // as a ratio
+
+            // Pin diameter ratio check
+            let pinRatioValue = 0;
+            let pinCheckText = '';
+            let pinCheckColor = '#2c3e50';
+
+            if (!isNaN(dh) && !isNaN(d) && dh > 0 && d > 0) {
+                pinRatioValue = dh / d;
+                if (pinRatioValue > 2) {
+                    pinCheckText = 'Hole too large relative to pin - REVISE DIAMETERS';
+                    pinCheckColor = '#e74c3c';
+                } else {
+                    pinCheckText = 'dh/d \u2264 2 - OK';
+                    pinCheckColor = '#27ae60';
+                }
+            }
+
+            // ASCE 10 Sec 4.6 final values
+            let holeStrength1 = 0;
+            let holeStrength2 = 0;
+            let governingStrength = 0;
+            let holeUtil = 0;                                           // as a ratio
+            let attachmentCheckText = '';
+
+            if (holeCheckAvailable) {
+                holeStrength1 = 0.75 * (endDistance - 0.5 * dh) * t * Fu;
+                holeStrength2 = 1.35 * d * t * Fu;
+                governingStrength = Math.min(holeStrength1, holeStrength2);
+                holeUtil = governingStrength > 0 ? P / governingStrength : 0;
+                attachmentCheckText = 'Attachment Plate has adequate strength';
+                document.getElementById('attachmentCheckResult').style.background = 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)';
+                document.getElementById('attachmentCheckResult').style.color = 'white';
+            }
+
+            // Governing utilization = max of stress and hole strength utilizations
+            const governingUtil = Math.max(stressUtil, holeUtil);
+            const utilization = governingUtil * 100;                    // display as %
+
+            // Display results - format thickness to remove trailing zeros
+            const formattedThickness = formatNumber(t, 3);
+            document.getElementById('thickness').innerHTML = formattedThickness + '<span class="result-unit" style="color: rgba(255,255,255,0.9);">inches (in 1/8" increments)</span>';
+            document.getElementById('sx').innerHTML = Sx.toFixed(3) + '<span class="result-unit">in³</span>';
+            document.getElementById('sy').innerHTML = Sy.toFixed(3) + '<span class="result-unit">in³</span>';
+            document.getElementById('mx').innerHTML = Mx.toFixed(3) + '<span class="result-unit">kip-in</span>';
+            document.getElementById('my').innerHTML = My.toFixed(3) + '<span class="result-unit">kip-in</span>';
+            document.getElementById('sigmaX').innerHTML = sigmaX.toFixed(3) + '<span class="result-unit">ksi</span>';
+            document.getElementById('sigmaY').innerHTML = sigmaY.toFixed(3) + '<span class="result-unit">ksi</span>';
+            document.getElementById('crossSectionArea').innerHTML = crossSectionArea.toFixed(3) + '<span class="result-unit">in²</span>';
+            document.getElementById('sigmaAxial').innerHTML = sigmaAxial.toFixed(3) + '<span class="result-unit">ksi</span>';
+            document.getElementById('combinedStress').innerHTML = combinedStress.toFixed(3) + '<span class="result-unit">ksi</span>';
+
+            // Stress utilization display
+            document.getElementById('stressUtilization').innerHTML = (stressUtil * 100).toFixed(2) + '<span class="result-unit">%</span>';
+
+            // Governing utilization is always <= maxUtilLimit here (loop guarantee)
+            document.getElementById('utilization').innerHTML = 
+                utilization.toFixed(2) + '<span class="result-unit">%</span>' +
+                '<span class="status-indicator status-ok">OK</span>';
+
+            // Display ASCE 10 Section 4.6 results
+            document.getElementById('loadP').innerHTML = P.toFixed(3) + '<span class="result-unit">kips</span>';
+            
+            if (!isNaN(dh) && !isNaN(d) && dh > 0) {
+                const pinFailed = pinRatioValue > 2;
+                const utilColor = pinFailed ? '#e74c3c' : 'inherit';
+                document.getElementById('pinRatio').innerHTML = pinRatioValue.toFixed(3);
+                document.getElementById('pinCheck').innerHTML = '<span style="color: ' + pinCheckColor + ';">' + pinCheckText + '</span>';
+                document.getElementById('holeStrength1').innerHTML = holeStrength1.toFixed(3) + '<span class="result-unit">kips</span>';
+                document.getElementById('holeStrength2').innerHTML = holeStrength2.toFixed(3) + '<span class="result-unit">kips</span>';
+                document.getElementById('governingStrength').innerHTML = governingStrength.toFixed(3) + '<span class="result-unit">kips</span>';
+                document.getElementById('holeUtilization').innerHTML = '<span style="color:' + utilColor + '; font-weight:' + (pinFailed ? '700' : 'normal') + ';">' + (holeUtil * 100).toFixed(2) + '<span class="result-unit">%</span></span>';
+                document.getElementById('attachmentCheck').innerHTML = '<span style="color: white;">' + attachmentCheckText + '</span>';
+                // Governing utilization in Result Summary — red if pin failed
+                document.getElementById('sum_utilization').innerHTML = '<span style="color:' + (pinFailed ? '#e74c3c' : '#3498db') + '; font-weight:700;">' + utilization.toFixed(2) + '</span><span style="font-size: 13px; color: rgba(255,255,255,0.6);"> %</span>';
+            } else {
+                document.getElementById('pinRatio').innerHTML = '-';
+                document.getElementById('pinCheck').innerHTML = 'Enter hole and pin diameters';
+                document.getElementById('holeStrength1').innerHTML = '-<span class="result-unit">kips</span>';
+                document.getElementById('holeStrength2').innerHTML = '-<span class="result-unit">kips</span>';
+                document.getElementById('governingStrength').innerHTML = '-<span class="result-unit">kips</span>';
+                document.getElementById('holeUtilization').innerHTML = '-<span class="result-unit">%</span>';
+                document.getElementById('attachmentCheck').innerHTML = 'Enter hole, pin and end distance values';
+            }
+
+            // Result Summary panel
+            const tFormatted = formatNumber(t, 3);
+            document.getElementById('sum_thickness').innerHTML = tFormatted + '<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span>';
+            document.getElementById('sum_holeDiameter').innerHTML = (!isNaN(dh) && dh > 0 ? dh.toString() : '-') + '<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span>';
+            document.getElementById('sum_pinDiameter').innerHTML = (!isNaN(d) && d > 0 ? d.toString() : '-') + '<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span>';
+            document.getElementById('sum_endDistance').innerHTML = (!isNaN(endDistance) && endDistance > 0 ? endDistance.toString() : '-') + '<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span>';
+            document.getElementById('sum_yieldStress').innerHTML = Fy.toString() + '<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> ksi</span>';
+            // sum_utilization color is set inside the pin check block above; only set here when hole inputs not provided
+            if (!(! isNaN(dh) && !isNaN(d) && dh > 0)) {
+                document.getElementById('sum_utilization').innerHTML = utilization.toFixed(2) + '<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> %</span>';
+            }
+
+            // Update diagram overlays
+            updateDiagramOverlays();
+        }
+
+        function resetForm() {
+            document.getElementById('width').value = '';
+            document.getElementById('length').value = '';
+            document.getElementById('lengthHole').value = '';
+            document.getElementById('holeDiameter').value = '';
+            document.getElementById('pinDiameter').value = '';
+            document.getElementById('endDistance').value = '';
+            document.getElementById('allowableStress').value = '50';
+            document.getElementById('tensileStress').value = '65';
+            document.getElementById('loadT').value = '';
+            document.getElementById('loadV').value = '';
+            document.getElementById('loadL').value = '';
+            document.getElementById('maxUtilization').value = '90';
+            
+            document.getElementById('thickness').innerHTML = '-<span class="result-unit" style="color: rgba(255,255,255,0.9);">inches</span>';
+            const resultIds = ['sx', 'sy', 'mx', 'my', 'sigmaX', 'sigmaY', 'crossSectionArea', 'sigmaAxial', 'combinedStress', 'utilization'];
+            resultIds.forEach(id => {
+                const element = document.getElementById(id);
+                if (id === 'utilization') {
+                    element.innerHTML = '-<span class="result-unit">%</span>';
+                } else if (id === 'sx' || id === 'sy') {
+                    element.innerHTML = '-<span class="result-unit">in³</span>';
+                } else if (id === 'mx' || id === 'my') {
+                    element.innerHTML = '-<span class="result-unit">kip-in</span>';
+                } else if (id === 'crossSectionArea') {
+                    element.innerHTML = '-<span class="result-unit">in²</span>';
+                } else {
+                    element.innerHTML = '-<span class="result-unit">ksi</span>';
+                }
+            });
+
+            // Reset ASCE 10 Section 4.6 results
+            document.getElementById('loadP').innerHTML = '-<span class="result-unit">kips</span>';
+            document.getElementById('pinRatio').innerHTML = '-';
+            document.getElementById('pinCheck').innerHTML = '-';
+            document.getElementById('holeStrength1').innerHTML = '-<span class="result-unit">kips</span>';
+            document.getElementById('holeStrength2').innerHTML = '-<span class="result-unit">kips</span>';
+            document.getElementById('governingStrength').innerHTML = '-<span class="result-unit">kips</span>';
+            document.getElementById('holeUtilization').innerHTML = '-<span class="result-unit">%</span>';
+            document.getElementById('stressUtilization').innerHTML = '-<span class="result-unit">%</span>';
+            document.getElementById('attachmentCheck').innerHTML = '-';
+            document.getElementById('attachmentCheckResult').style.background = 'white';
+            document.getElementById('attachmentCheckResult').style.color = '#2c3e50';
+
+            // Reset Result Summary
+            document.getElementById('sum_thickness').innerHTML = '-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span>';
+            document.getElementById('sum_holeDiameter').innerHTML = '-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span>';
+            document.getElementById('sum_pinDiameter').innerHTML = '-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span>';
+            document.getElementById('sum_endDistance').innerHTML = '-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> in</span>';
+            document.getElementById('sum_yieldStress').innerHTML = '-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> ksi</span>';
+            document.getElementById('sum_utilization').innerHTML = '-<span style="font-size: 13px; color: rgba(255,255,255,0.6);"> %</span>';
+
+            // Reset SVG overlays to show only variable names
+            updateDiagramOverlays();
+        }
+
+        function printToPDF() {
+            window.print();
+        }
+
+        // Save data function
+        function saveData() {
+            const data = {
+                projectInfo: {
+                    projectName: document.getElementById('projectName').value,
+                    towerType: document.getElementById('towerType').value,
+                    memberLabel: document.getElementById('memberLabel').value
+                },
+                inputs: {
+                    width: document.getElementById('width').value,
+                    length: document.getElementById('length').value,
+                    lengthHole: document.getElementById('lengthHole').value,
+                    holeDiameter: document.getElementById('holeDiameter').value,
+                    pinDiameter: document.getElementById('pinDiameter').value,
+                    endDistance: document.getElementById('endDistance').value,
+                    allowableStress: document.getElementById('allowableStress').value,
+                    tensileStress: document.getElementById('tensileStress').value,
+                    loadT: document.getElementById('loadT').value,
+                    loadV: document.getElementById('loadV').value,
+                    loadL: document.getElementById('loadL').value,
+                    maxUtilization: document.getElementById('maxUtilization').value
+                },
+                results: {
+                    thickness: document.getElementById('thickness').textContent,
+                    sx: document.getElementById('sx').textContent,
+                    sy: document.getElementById('sy').textContent,
+                    mx: document.getElementById('mx').textContent,
+                    my: document.getElementById('my').textContent,
+                    sigmaX: document.getElementById('sigmaX').textContent,
+                    sigmaY: document.getElementById('sigmaY').textContent,
+                    crossSectionArea: document.getElementById('crossSectionArea').textContent,
+                    sigmaAxial: document.getElementById('sigmaAxial').textContent,
+                    combinedStress: document.getElementById('combinedStress').textContent,
+                    utilization: document.getElementById('utilization').textContent
+                },
+                timestamp: new Date().toISOString()
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            
+            // Create filename from project info
+            let filename = 'plate_calculator';
+            if (data.projectInfo.projectName) {
+                filename = data.projectInfo.projectName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            }
+            if (data.projectInfo.memberLabel) {
+                filename += '_' + data.projectInfo.memberLabel.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            }
+            filename += '_' + new Date().toISOString().split('T')[0] + '.json';
+            
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert('File saved successfully!');
+        }
+
+        // Import data function
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    // Load project info
+                    if (data.projectInfo) {
+                        document.getElementById('projectName').value = data.projectInfo.projectName || '';
+                        document.getElementById('towerType').value = data.projectInfo.towerType || '';
+                        document.getElementById('memberLabel').value = data.projectInfo.memberLabel || '';
+                    }
+                    
+                    // Load inputs
+                    if (data.inputs) {
+                        document.getElementById('width').value = data.inputs.width || '';
+                        document.getElementById('length').value = data.inputs.length || '';
+                        document.getElementById('lengthHole').value = data.inputs.lengthHole || '';
+                        document.getElementById('holeDiameter').value = data.inputs.holeDiameter || '';
+                        document.getElementById('pinDiameter').value = data.inputs.pinDiameter || '';
+                        document.getElementById('endDistance').value = data.inputs.endDistance || '';
+                        document.getElementById('allowableStress').value = data.inputs.allowableStress || '50';
+                        document.getElementById('tensileStress').value = data.inputs.tensileStress || '65';
+                        document.getElementById('loadT').value = data.inputs.loadT || '';
+                        document.getElementById('loadV').value = data.inputs.loadV || '';
+                        document.getElementById('loadL').value = data.inputs.loadL || '';
+                        document.getElementById('maxUtilization').value = data.inputs.maxUtilization || '90';
+                    }
+                    
+                    // Update diagram overlays
+                    updateDiagramOverlays();
+                    
+                    // If results exist, recalculate to show them
+                    if (data.inputs.width && data.inputs.length && data.inputs.lengthHole && 
+                        data.inputs.loadT && data.inputs.loadV && data.inputs.loadL) {
+                        calculate();
+                    }
+                    
+                    alert('File imported successfully!');
+                } catch (error) {
+                    alert('Error importing file: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+            
+            // Reset file input so the same file can be imported again
+            event.target.value = '';
+        }
+
+        // Update diagram as user types and changes dropdowns
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize with variable names only
+            updateDiagramOverlays();
+            
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        calculate();
+                    }
+                });
+                
+                // Update diagram overlays in real-time
+                input.addEventListener('input', updateDiagramOverlays);
+            });
+            
+            // Also update on dropdown changes
+            const selects = document.querySelectorAll('select');
+            selects.forEach(select => {
+                select.addEventListener('change', updateDiagramOverlays);
+            });
+        });
+    </script>
+</body>
+</html>
